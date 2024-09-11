@@ -36,6 +36,7 @@ function syscalls.generate(tbl, config, fh)
     gen:write(string.format("const char *%s[] = {\n", config.namesname))
 
 	for _, v in pairs(s) do
+		--print("num " .. v.num .. " name " .. v.name)
 		local c = v:compatLevel()
         if v:native() then
             gen:write(string.format("\t\"%s\",\t\t\t/* %d = %s */\n",
@@ -59,9 +60,8 @@ function syscalls.generate(tbl, config, fh)
                 "\t\"#%d\",\t\t\t/* %d = reserved for local use */\n",
 	            v.num, v.num))
 		elseif v.type.UNIMPL then
-            local comment = v.alias -- xxx this is sometimes different
 			gen:write(string.format("\t\"#%d\",\t\t\t/* %d = %s */\n",
-		    v.num, v.num, comment))
+		    v.num, v.num, v.alias))
         elseif v.type.OBSOL then
             gen:write(string.format(
                 "\t\"obs_%s\",\t\t\t/* %d = obsolete %s */\n",

@@ -22,7 +22,7 @@ function scret:process()
 	end
 	while words[2]:sub(1,1) == "*" do
 		words[2] = words[2]:sub(2)
-		self.scret = self.scret .. " "
+		self.scret = self.scret .. "*"
     end
 end
 

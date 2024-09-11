@@ -3,9 +3,9 @@
 #endif
 /*
  * System call argument to DTrace register array converstion.
- *
- * DO NOT EDIT-- this file is automatically @generated.
  * This file is part of the DTrace syscall provider.
+ *
+ * DO NOT EDIT-- this file is automatically @generated
  */
 
 static void

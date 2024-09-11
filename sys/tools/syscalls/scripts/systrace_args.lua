@@ -32,6 +32,9 @@ function systrace_args.generate(tbl, config, fh)
     -- Bind the generator to the parameter file.
     local gen = generator:new({}, fh)
     gen.storage_levels = {} -- make sure storage is clear
+    
+	-- 64-bit padding preprocessor directive.
+    gen:pad64(config.abiChanges("pair_64bit"))
 
     -- Write the generated preamble.
     gen:preamble("System call argument to DTrace register array converstion.\n"
@@ -60,10 +63,8 @@ systrace_return_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 	switch (sysnum) {
 ]]), 2)
 
-    -- 64-bit padding preprocessor directive.
-    gen:pad64(config.abiChanges("pair_64bit"))
-
     for _, v in pairs(s) do
+
         -- Handle non compat:
         if v:native() then
             gen:write(string.format([[
@@ -153,7 +154,6 @@ systrace_return_setargdesc(int sysnum, int ndx, char *desc, size_t descsz)
 		            gen:store("#undef _P_\n\n", 1)
 		        end
 
-                -- xxx error here, mux flag isn't being filtered properly
 		        gen:store(string.format([[
 		if (ndx == 0 || ndx == 1)
 			p = "%s";

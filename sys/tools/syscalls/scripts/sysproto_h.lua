@@ -87,6 +87,7 @@ struct thread;
 
     for _, v in pairs(s) do
         local c = v:compatLevel()
+		--print("num " .. v.num .. " name " .. v.name)
 
         -- Audit defines are stored at an arbitrarily large number so that
         -- they're always at the last storage level, and compat entries can be

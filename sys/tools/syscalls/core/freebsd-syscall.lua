@@ -96,7 +96,7 @@ function FreeBSDSyscall:parseSysfile()
         ::skip::
 	end
 
-    -- special handling for linux nosys
+    -- Special handling for linux nosys.
     if config.syscallprefix:find("LINUX") ~= nil then
         s = nil
     end
