@@ -193,7 +193,7 @@ end
 -- >= 4 FreeBSD version this system call was replaced with a new version
 --
 function syscall:compatLevel()
-	if self.type.UNIMPL or self.type.RESERVED or self.type.NODEF then
+	if self.type.UNIMPL or self.type.RESERVED then
 		return -1
 	elseif self.type.OBSOL then
 		return 0
@@ -370,8 +370,7 @@ end
 -- NOTE: The other system call names are also treated as native, so that's why
 -- they're being allowed in here.
 function syscall:native()
-    return self:compatLevel() == native or self.name == "lkmnosys" or
-           self.name == "sysarch" or self.name =="fchown"
+    return self:compatLevel() == native
 end
 
 -- Make a shallow copy of `self` and replace the system call number with num

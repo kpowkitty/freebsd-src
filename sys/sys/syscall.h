@@ -198,6 +198,16 @@
 #define	SYS_futimes	206
 #define	SYS_getpgid	207
 #define	SYS_poll	209
+#define	SYS_lkmnosys	210
+#define	SYS_lkmnosys	211
+#define	SYS_lkmnosys	212
+#define	SYS_lkmnosys	213
+#define	SYS_lkmnosys	214
+#define	SYS_lkmnosys	215
+#define	SYS_lkmnosys	216
+#define	SYS_lkmnosys	217
+#define	SYS_lkmnosys	218
+#define	SYS_lkmnosys	219
 #define	SYS_freebsd7___semctl	220
 #define	SYS_semget	221
 #define	SYS_semop	222

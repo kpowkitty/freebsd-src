@@ -187,6 +187,7 @@
 #define	LINUX32_SYS_setregid	204
 #define	LINUX32_SYS_linux_getgroups	205
 #define	LINUX32_SYS_linux_setgroups	206
+#define	LINUX32_SYS_fchown	207
 #define	LINUX32_SYS_setresuid	208
 #define	LINUX32_SYS_getresuid	209
 #define	LINUX32_SYS_setresgid	210

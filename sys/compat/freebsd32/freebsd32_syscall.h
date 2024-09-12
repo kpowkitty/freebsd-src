@@ -195,6 +195,16 @@
 #define	FREEBSD32_SYS_freebsd32_futimes	206
 #define	FREEBSD32_SYS_getpgid	207
 #define	FREEBSD32_SYS_poll	209
+#define	FREEBSD32_SYS_lkmnosys	210
+#define	FREEBSD32_SYS_lkmnosys	211
+#define	FREEBSD32_SYS_lkmnosys	212
+#define	FREEBSD32_SYS_lkmnosys	213
+#define	FREEBSD32_SYS_lkmnosys	214
+#define	FREEBSD32_SYS_lkmnosys	215
+#define	FREEBSD32_SYS_lkmnosys	216
+#define	FREEBSD32_SYS_lkmnosys	217
+#define	FREEBSD32_SYS_lkmnosys	218
+#define	FREEBSD32_SYS_lkmnosys	219
 #define	FREEBSD32_SYS_freebsd7_freebsd32___semctl	220
 #define	FREEBSD32_SYS_semget	221
 #define	FREEBSD32_SYS_semop	222
