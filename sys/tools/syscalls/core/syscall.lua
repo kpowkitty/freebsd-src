@@ -370,8 +370,12 @@ end
 -- NOTE: The other system call names are also treated as native, so that's why
 -- they're being allowed in here.
 function syscall:native()
-    return self:compatLevel() == native or self.name == "lkmnosys" or
-           self.name == "sysarch" or self.name =="fchown"
+	-- Noncompat are more for active or largely non-special syscalls, those
+	-- marked STD/NODEF/NOARGS/NOPROTO/NOSTD (see `ncompatflags`).
+	return self:compatLevel() == native and (self.type.STD or self.type.NODEF or
+		self.type.NOARGS or self.type.NOPROTO or self.type.NOSTD)
+    --return self:compatLevel() == native or self.name == "lkmnosys" or
+    --       self.name == "sysarch" or self.name =="fchown"
 end
 
 -- Make a shallow copy of `self` and replace the system call number with num
