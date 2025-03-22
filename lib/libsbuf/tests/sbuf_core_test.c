@@ -1,5 +1,6 @@
 /*-
  * Copyright (c) 2017 Enji Cooper <ngie@freebsd.org>
+ * Copyright (c) 2025 Kat Powell <witchikittikat@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -242,6 +243,170 @@ ATF_TC_BODY(sbuf_setpos_test, tc)
 	sbuf_delete(sb);
 }
 
+ATF_TC_WITHOUT_HEAD(sbuf_clear_flags_test);
+ATF_TC_BODY(sbuf_clear_flags_test, tc)
+{
+	struct sbuf *sb;
+	int testing_flags;
+	int bad_flags;
+	int zero_flags = 0;
+
+	testing_flags = SBUF_FIXEDLEN;
+	sb = sbuf_new(NULL, NULL, 0, testing_flags);
+
+	/* Sanity check - structure instantiated flags properly. */
+	ATF_REQUIRE_MSG(sbuf_get_flags(sb) == testing_flags,
+	    "improper instantiation");
+
+	/* First test - clear one flag, when it's the only flag. */
+	sbuf_clear_flags(sb, testing_flags);
+	ATF_REQUIRE_MSG(sbuf_get_flags(sb) == zero_flags,
+	    "failed to clear the only flag");
+
+	/* Second test - clear one flag, when there are more flags. */
+	testing_flags = SBUF_AUTOEXTEND | SBUF_INCLUDENUL;
+	sbuf_set_flags(sb, testing_flags);
+	testing_flags = SBUF_AUTOEXTEND;
+	sbuf_clear_flags(sb, testing_flags);
+	testing_flags = SBUF_INCLUDENUL;
+	ATF_REQUIRE_MSG(sbuf_get_flags(sb) == testing_flags,
+	    "failed to clear one flag from many");
+
+	/* Third test - clear all flags when there are multiple flags. */
+	testing_flags = SBUF_AUTOEXTEND | SBUF_INCLUDENUL | SBUF_FIXEDLEN;
+	sbuf_set_flags(sb, testing_flags);
+	sbuf_clear_flags(sb, testing_flags);
+	ATF_REQUIRE_MSG(sbuf_get_flags(sb) == zero_flags,
+	    "failed to clear all flags at once");
+
+	/* Fourth test - clear a flag that isn't set. */
+	testing_flags = SBUF_FIXEDLEN;
+	sbuf_set_flags(sb, testing_flags);
+	bad_flags = SBUF_INCLUDENUL;
+	sbuf_clear_flags(sb, bad_flags);
+	ATF_REQUIRE_MSG(sbuf_get_flags(sb) == testing_flags,
+	    "failed to clear an unset flag");
+
+	/* Fifth test - clear a flag when none are set. */
+	sbuf_clear_flags(sb, testing_flags);
+	testing_flags = SBUF_FIXEDLEN;
+	sbuf_clear_flags(sb, testing_flags);
+	ATF_REQUIRE_MSG(sbuf_get_flags(sb) == zero_flags,
+	    "failed to clear a flag when none present");
+
+	sbuf_delete(sb);
+}
+
+ATF_TC_WITHOUT_HEAD(sbuf_get_flags_test);
+ATF_TC_BODY(sbuf_get_flags_test, tc)
+{
+	struct sbuf *sb;
+	int testing_flags;
+
+	testing_flags = SBUF_FIXEDLEN;
+	sb = sbuf_new(NULL, NULL, 0, testing_flags);
+
+	/* First test - get flags after setting a single flag. */
+	ATF_REQUIRE_MSG(sbuf_get_flags(sb) == testing_flags,
+	    "failed to get a single flag");
+
+	/* Second test - get flags that don't exist. */
+	testing_flags = SBUF_AUTOEXTEND;
+	ATF_REQUIRE_MSG(sbuf_get_flags(sb) != testing_flags,
+	    "failed to get flags that don't exist");
+
+	/* Third test - get one flag out of multiple. */
+	testing_flags = SBUF_AUTOEXTEND | SBUF_INCLUDENUL;
+	sbuf_set_flags(sb, testing_flags);
+	testing_flags = SBUF_AUTOEXTEND;
+	ATF_REQUIRE_MSG(sbuf_get_flags(sb) != testing_flags,
+	    "failed to get one flag from multiple");
+
+	/* Fourth test - get multiple flags. */
+	testing_flags = SBUF_AUTOEXTEND | SBUF_INCLUDENUL;
+	ATF_REQUIRE_MSG(sbuf_get_flags(sb) == testing_flags,
+	    "failed to get multiple flags");
+
+	sbuf_delete(sb);
+}
+
+ATF_TC_WITHOUT_HEAD(sbuf_set_flags_test);
+ATF_TC_BODY(sbuf_set_flags_test, tc)
+{
+	struct sbuf *sb;
+	int testing_flags;
+	int zero_flags = 0;
+
+	sb = sbuf_new(NULL, NULL, 0, zero_flags);
+
+	/* First test - set flags when there's none. */
+	testing_flags = SBUF_INCLUDENUL | SBUF_AUTOEXTEND | SBUF_FIXEDLEN;
+	sbuf_set_flags(sb, testing_flags);
+	ATF_REQUIRE_MSG(sbuf_get_flags(sb) == testing_flags,
+	    "failed to set flags when there's none");
+
+	/* Second test - set flags when there's already some. */
+	testing_flags = SBUF_NOWAIT;
+	sbuf_set_flags(sb, testing_flags);
+	testing_flags = SBUF_NOWAIT | SBUF_INCLUDENUL | SBUF_AUTOEXTEND
+	    | SBUF_FIXEDLEN;
+	ATF_REQUIRE_MSG(sbuf_get_flags(sb) == testing_flags,
+	    "failed to set flags when there's already some");
+
+	sbuf_delete(sb);
+}
+
+ATF_TC_WITHOUT_HEAD(sbuf_new_positive_test);
+ATF_TC_BODY(sbuf_new_positive_test, tc)
+{
+	struct sbuf *sb;
+	int testing_flags;
+	char buf[strlen(test_string) + 1];
+	int bufSize = sizeof(buf);
+
+	/* First test - sb initialized. */
+	testing_flags = SBUF_FIXEDLEN;
+	sb = sbuf_new(NULL, buf, bufSize, testing_flags);
+	ATF_REQUIRE_MSG(sb != NULL, "sb incorrectly initialized as NULL");
+
+	/* Second test - able to cat the expected string. */
+	sbuf_cat(sb, test_string);
+	ATF_REQUIRE_MSG(sbuf_len(sb) == bufSize - 1,
+	    "sbuf_len(sb) failed, it was \"%zb\" when it should've been \"%b\""
+	    "and the str is: \"%s\"", sbuf_len(sb), bufSize, test_string);
+
+	/* Third test - flags were correctly set. */
+	ATF_CHECK(sbuf_get_flags(sb) == testing_flags);
+
+	sbuf_delete(sb);
+}
+
+ATF_TC_WITHOUT_HEAD(sbuf_new_negative_test);
+ATF_TC_BODY(sbuf_new_negative_test, tc)
+{
+	struct sbuf *sb;
+	int testing_flags;
+	ssize_t buf_size;
+	int zero_flags = 0;
+
+	/* First test - negative length. */
+	testing_flags = SBUF_FIXEDLEN;
+	buf_size = -1;
+	ATF_REQUIRE_MSG((sb = sbuf_new(NULL, NULL, buf_size, testing_flags)) == NULL,
+	    "instantiated sbuf with a negative length");
+
+	/* Second test - invalid flags. */
+	buf_size = 0;
+	testing_flags = 0x10000;
+	sb = sbuf_new(NULL, NULL, buf_size, testing_flags);
+	ATF_REQUIRE_MSG(sbuf_get_flags(sb) == zero_flags,
+	    "instantiated sbuf with invalid flags");
+
+	if (sb) {
+		sbuf_delete(sb);
+	}
+}
+
 ATF_TP_ADD_TCS(tp)
 {
 	ATF_TP_ADD_TC(tp, sbuf_clear_test);
@@ -249,20 +414,11 @@ ATF_TP_ADD_TCS(tp)
 	ATF_TP_ADD_TC(tp, sbuf_drain_ret0_test);
 	ATF_TP_ADD_TC(tp, sbuf_len_test);
 	ATF_TP_ADD_TC(tp, sbuf_new_fixedlen);
-#if 0
-	/* TODO */
-#ifdef HAVE_SBUF_CLEAR_FLAGS
 	ATF_TP_ADD_TC(tp, sbuf_clear_flags_test);
-#endif
-#ifdef HAVE_SBUF_GET_FLAGS
 	ATF_TP_ADD_TC(tp, sbuf_get_flags_test);
-#endif
+	ATF_TP_ADD_TC(tp, sbuf_set_flags_test);
 	ATF_TP_ADD_TC(tp, sbuf_new_positive_test);
 	ATF_TP_ADD_TC(tp, sbuf_new_negative_test);
-#ifdef HAVE_SBUF_SET_FLAGS
-	ATF_TP_ADD_TC(tp, sbuf_set_flags_test);
-#endif
-#endif
 	ATF_TP_ADD_TC(tp, sbuf_setpos_test);
 
 	return (atf_no_error());
