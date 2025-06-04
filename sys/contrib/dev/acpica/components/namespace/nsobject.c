@@ -205,6 +205,15 @@ AcpiNsAttachObject (
         return_ACPI_STATUS (AE_BAD_PARAMETER);
     }
 
+#ifdef _STANDALONE
+    printf("Type: %d.\n", Node->Type);
+    printf("Name: ");
+    for (int i = 0; i < 4; ++i) {
+    	printf("%c", Node->Name.Ascii[i]);
+    }
+    printf(".\n");
+#endif
+
     if (!Object && (ACPI_TYPE_ANY != Type))
     {
         /* Null object */

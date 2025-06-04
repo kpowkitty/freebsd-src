@@ -231,7 +231,9 @@ AcpiTbCheckDsdtHeader (
         ACPI_BIOS_ERROR ((AE_INFO,
             "The DSDT has been corrupted or replaced - "
             "old, new headers below"));
-
+#ifdef _STANDALONE
+	printf("In AcpiTbCheckDsdtHeader\n");
+#endif
         AcpiTbPrintTableHeader (0, &AcpiGbl_OriginalDsdtHeader);
         AcpiTbPrintTableHeader (0, AcpiGbl_DSDT);
 
@@ -398,7 +400,9 @@ AcpiTbParseRootTable (
     {
         return_ACPI_STATUS (AE_NO_MEMORY);
     }
-
+#ifdef _STANDALONE
+    printf("Inside AcpiTbParseRootTable\n");
+#endif
     AcpiTbPrintTableHeader (RsdpAddress,
         ACPI_CAST_PTR (ACPI_TABLE_HEADER, Rsdp));
 
@@ -408,6 +412,9 @@ AcpiTbParseRootTable (
         Rsdp->XsdtPhysicalAddress &&
         !AcpiGbl_DoNotUseXsdt)
     {
+#ifdef _STANDALONE
+    printf("Found Xsdt.\n");
+#endif
         /*
          * RSDP contains an XSDT (64-bit physical addresses). We must use
          * the XSDT if the revision is > 1 and the XSDT pointer is present,
@@ -418,6 +425,9 @@ AcpiTbParseRootTable (
     }
     else
     {
+#ifdef _STANDALONE
+    printf("Found Rsdt.\n");
+#endif
         /* Root table is an RSDT (32-bit physical addresses) */
 
         Address = (ACPI_PHYSICAL_ADDRESS) Rsdp->RsdtPhysicalAddress;
@@ -437,6 +447,10 @@ AcpiTbParseRootTable (
     {
         return_ACPI_STATUS (AE_NO_MEMORY);
     }
+
+#ifdef _STANDALONE
+    printf("Inside AcpiTbParseRootTable -- 2\n");
+#endif
 
     AcpiTbPrintTableHeader (Address, Table);
 
@@ -507,6 +521,10 @@ NextTable:
 
         TableEntry += TableEntrySize;
     }
+
+#ifdef _STANDALONE
+    printf("Successful AcpiTbParseRootTable\n");
+#endif
 
     AcpiOsUnmapMemory (Table, Length);
     return_ACPI_STATUS (AE_OK);

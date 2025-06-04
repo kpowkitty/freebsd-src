@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Module Name: tbprint - Table output utilities
+ * Module Name: utinit - Common ACPI subsystem initialization
  *
  *****************************************************************************/
 
@@ -149,160 +149,313 @@
  *
  *****************************************************************************/
 
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
-#include <contrib/dev/acpica/include/actables.h>
-#include <contrib/dev/acpica/include/acdisasm.h>
-#include <contrib/dev/acpica/include/acutils.h>
+#include <acpi.h>
+#include <accommon.h>
+#include <acnamesp.h>
+#include <acevents.h>
+#include <actables.h>
 
-#define _COMPONENT          ACPI_TABLES
-        ACPI_MODULE_NAME    ("tbprint")
-
+#define _COMPONENT          ACPI_UTILITIES
+        ACPI_MODULE_NAME    ("utinit")
 
 /* Local prototypes */
 
-static void
-AcpiTbFixString (
-    char                    *String,
-    ACPI_SIZE               Length);
+static void AcpiUtTerminate (
+    void);
+
+#if (!ACPI_REDUCED_HARDWARE)
 
 static void
-AcpiTbCleanupTableHeader (
-    ACPI_TABLE_HEADER       *OutHeader,
-    ACPI_TABLE_HEADER       *Header);
+AcpiUtFreeGpeLists (
+    void);
+
+#else
+
+#define AcpiUtFreeGpeLists()
+#endif /* !ACPI_REDUCED_HARDWARE */
 
 
-/*******************************************************************************
+#if (!ACPI_REDUCED_HARDWARE)
+/******************************************************************************
  *
- * FUNCTION:    AcpiTbFixString
+ * FUNCTION:    AcpiUtFreeGpeLists
  *
- * PARAMETERS:  String              - String to be repaired
- *              Length              - Maximum length
+ * PARAMETERS:  none
  *
- * RETURN:      None
+ * RETURN:      none
  *
- * DESCRIPTION: Replace every non-printable or non-ascii byte in the string
- *              with a question mark '?'.
+ * DESCRIPTION: Free global GPE lists
  *
  ******************************************************************************/
 
 static void
-AcpiTbFixString (
-    char                    *String,
-    ACPI_SIZE               Length)
+AcpiUtFreeGpeLists (
+    void)
 {
+    ACPI_GPE_BLOCK_INFO     *GpeBlock;
+    ACPI_GPE_BLOCK_INFO     *NextGpeBlock;
+    ACPI_GPE_XRUPT_INFO     *GpeXruptInfo;
+    ACPI_GPE_XRUPT_INFO     *NextGpeXruptInfo;
 
-    while (Length && *String)
+
+    /* Free global GPE blocks and related info structures */
+
+    GpeXruptInfo = AcpiGbl_GpeXruptListHead;
+    while (GpeXruptInfo)
     {
-        if (!isprint ((int) (UINT8) *String))
+        GpeBlock = GpeXruptInfo->GpeBlockListHead;
+        while (GpeBlock)
         {
-            *String = '?';
-        }
+            NextGpeBlock = GpeBlock->Next;
+            ACPI_FREE (GpeBlock->EventInfo);
+            ACPI_FREE (GpeBlock->RegisterInfo);
+            ACPI_FREE (GpeBlock);
 
-        String++;
-        Length--;
+            GpeBlock = NextGpeBlock;
+        }
+        NextGpeXruptInfo = GpeXruptInfo->Next;
+        ACPI_FREE (GpeXruptInfo);
+        GpeXruptInfo = NextGpeXruptInfo;
     }
 }
+#endif /* !ACPI_REDUCED_HARDWARE */
 
 
 /*******************************************************************************
  *
- * FUNCTION:    AcpiTbCleanupTableHeader
+ * FUNCTION:    AcpiUtInitGlobals
  *
- * PARAMETERS:  OutHeader           - Where the cleaned header is returned
- *              Header              - Input ACPI table header
+ * PARAMETERS:  None
  *
- * RETURN:      Returns the cleaned header in OutHeader
+ * RETURN:      Status
  *
- * DESCRIPTION: Copy the table header and ensure that all "string" fields in
- *              the header consist of printable characters.
+ * DESCRIPTION: Initialize ACPICA globals. All globals that require specific
+ *              initialization should be initialized here. This allows for
+ *              a warm restart.
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AcpiUtInitGlobals (
+    void)
+{
+    ACPI_STATUS             Status;
+    UINT32                  i;
+
+
+    ACPI_FUNCTION_TRACE (UtInitGlobals);
+
+
+    /* Create all memory caches */
+
+    Status = AcpiUtCreateCaches ();
+    if (ACPI_FAILURE (Status))
+    {
+        return_ACPI_STATUS (Status);
+    }
+
+    /* Address Range lists */
+
+    for (i = 0; i < ACPI_ADDRESS_RANGE_MAX; i++)
+    {
+        AcpiGbl_AddressRangeList[i] = NULL;
+    }
+
+    /* Mutex locked flags */
+
+    for (i = 0; i < ACPI_NUM_MUTEX; i++)
+    {
+        AcpiGbl_MutexInfo[i].Mutex          = NULL;
+        AcpiGbl_MutexInfo[i].ThreadId       = ACPI_MUTEX_NOT_ACQUIRED;
+        AcpiGbl_MutexInfo[i].UseCount       = 0;
+    }
+
+    for (i = 0; i < ACPI_NUM_OWNERID_MASKS; i++)
+    {
+        AcpiGbl_OwnerIdMask[i]              = 0;
+    }
+
+    /* Last OwnerID is never valid */
+
+    AcpiGbl_OwnerIdMask[ACPI_NUM_OWNERID_MASKS - 1] = 0x80000000;
+
+    /* Event counters */
+
+    AcpiMethodCount                     = 0;
+    AcpiSciCount                        = 0;
+    AcpiGpeCount                        = 0;
+
+    for (i = 0; i < ACPI_NUM_FIXED_EVENTS; i++)
+    {
+        AcpiFixedEventCount[i]              = 0;
+    }
+
+#if (!ACPI_REDUCED_HARDWARE)
+
+    /* GPE/SCI support */
+
+    AcpiGbl_AllGpesInitialized          = FALSE;
+    AcpiGbl_GpeXruptListHead            = NULL;
+    AcpiGbl_GpeFadtBlocks[0]            = NULL;
+    AcpiGbl_GpeFadtBlocks[1]            = NULL;
+    AcpiCurrentGpeCount                 = 0;
+
+    AcpiGbl_GlobalEventHandler          = NULL;
+    AcpiGbl_SciHandlerList              = NULL;
+
+#endif /* !ACPI_REDUCED_HARDWARE */
+
+    /* Global handlers */
+
+    AcpiGbl_GlobalNotify[0].Handler     = NULL;
+    AcpiGbl_GlobalNotify[1].Handler     = NULL;
+    AcpiGbl_ExceptionHandler            = NULL;
+    AcpiGbl_InitHandler                 = NULL;
+    AcpiGbl_TableHandler                = NULL;
+    AcpiGbl_InterfaceHandler            = NULL;
+
+    /* Global Lock support */
+
+    AcpiGbl_GlobalLockSemaphore         = ACPI_SEMAPHORE_NULL;
+    AcpiGbl_GlobalLockMutex             = NULL;
+    AcpiGbl_GlobalLockAcquired          = FALSE;
+    AcpiGbl_GlobalLockHandle            = 0;
+    AcpiGbl_GlobalLockPresent           = FALSE;
+
+    /* Miscellaneous variables */
+
+    AcpiGbl_DSDT                        = NULL;
+    AcpiGbl_CmSingleStep                = FALSE;
+    AcpiGbl_Shutdown                    = FALSE;
+    AcpiGbl_NsLookupCount               = 0;
+    AcpiGbl_PsFindCount                 = 0;
+    AcpiGbl_AcpiHardwarePresent         = TRUE;
+    AcpiGbl_LastOwnerIdIndex            = 0;
+    AcpiGbl_NextOwnerIdOffset           = 0;
+    AcpiGbl_DebuggerConfiguration       = DEBUGGER_THREADING;
+    AcpiGbl_OsiMutex                    = NULL;
+
+    /* Hardware oriented */
+
+    AcpiGbl_EventsInitialized           = FALSE;
+    AcpiGbl_SystemAwakeAndRunning       = TRUE;
+
+    /* Namespace */
+
+    AcpiGbl_RootNode                    = NULL;
+    AcpiGbl_RootNodeStruct.Name.Integer = ACPI_ROOT_NAME;
+    AcpiGbl_RootNodeStruct.DescriptorType = ACPI_DESC_TYPE_NAMED;
+    AcpiGbl_RootNodeStruct.Type         = ACPI_TYPE_DEVICE;
+    AcpiGbl_RootNodeStruct.Parent       = NULL;
+    AcpiGbl_RootNodeStruct.Child        = NULL;
+    AcpiGbl_RootNodeStruct.Peer         = NULL;
+    AcpiGbl_RootNodeStruct.Object       = NULL;
+
+
+#ifdef ACPI_DISASSEMBLER
+    AcpiGbl_ExternalList                = NULL;
+    AcpiGbl_NumExternalMethods          = 0;
+    AcpiGbl_ResolvedExternalMethods     = 0;
+#endif
+
+#ifdef ACPI_DEBUG_OUTPUT
+    AcpiGbl_LowestStackPointer          = ACPI_CAST_PTR (ACPI_SIZE, ACPI_SIZE_MAX);
+#endif
+
+#ifdef ACPI_DBG_TRACK_ALLOCATIONS
+    AcpiGbl_DisplayFinalMemStats        = FALSE;
+    AcpiGbl_DisableMemTracking          = FALSE;
+#endif
+
+    return_ACPI_STATUS (AE_OK);
+}
+
+
+/******************************************************************************
+ *
+ * FUNCTION:    AcpiUtTerminate
+ *
+ * PARAMETERS:  none
+ *
+ * RETURN:      none
+ *
+ * DESCRIPTION: Free global memory
  *
  ******************************************************************************/
 
 static void
-AcpiTbCleanupTableHeader (
-    ACPI_TABLE_HEADER       *OutHeader,
-    ACPI_TABLE_HEADER       *Header)
+AcpiUtTerminate (
+    void)
 {
+    ACPI_FUNCTION_TRACE (UtTerminate);
 
-    memcpy (OutHeader, Header, sizeof (ACPI_TABLE_HEADER));
-
-    AcpiTbFixString (OutHeader->Signature, ACPI_NAMESEG_SIZE);
-    AcpiTbFixString (OutHeader->OemId, ACPI_OEM_ID_SIZE);
-    AcpiTbFixString (OutHeader->OemTableId, ACPI_OEM_TABLE_ID_SIZE);
-    AcpiTbFixString (OutHeader->AslCompilerId, ACPI_NAMESEG_SIZE);
+    AcpiUtFreeGpeLists ();
+    AcpiUtDeleteAddressLists ();
+    return_VOID;
 }
 
 
 /*******************************************************************************
  *
- * FUNCTION:    AcpiTbPrintTableHeader
+ * FUNCTION:    AcpiUtSubsystemShutdown
  *
- * PARAMETERS:  Address             - Table physical address
- *              Header              - Table header
+ * PARAMETERS:  None
  *
  * RETURN:      None
  *
- * DESCRIPTION: Print an ACPI table header. Special cases for FACS and RSDP.
+ * DESCRIPTION: Shutdown the various components. Do not delete the mutex
+ *              objects here, because the AML debugger may be still running.
  *
  ******************************************************************************/
 
 void
-AcpiTbPrintTableHeader (
-    ACPI_PHYSICAL_ADDRESS   Address,
-    ACPI_TABLE_HEADER       *Header)
+AcpiUtSubsystemShutdown (
+    void)
 {
-    ACPI_TABLE_HEADER       LocalHeader;
+    ACPI_FUNCTION_TRACE (UtSubsystemShutdown);
 
-#ifdef _STANDALONE
-    	printf("Inside AcpiTbPrintTableHeader.\n");
-#endif
 
-    if (ACPI_COMPARE_NAMESEG (Header->Signature, ACPI_SIG_FACS))
+    /* Just exit if subsystem is already shutdown */
+
+    if (AcpiGbl_Shutdown)
     {
-#ifdef _STANDALONE
-    	printf("FACS statement.\n");
-#endif
-        /* FACS only has signature and length fields */
-
-        ACPI_INFO (("%-4.4s 0x%8.8X%8.8X %06X",
-            Header->Signature, ACPI_FORMAT_UINT64 (Address),
-            Header->Length));
+        ACPI_ERROR ((AE_INFO, "ACPI Subsystem is already terminated"));
+        return_VOID;
     }
-    else if (ACPI_VALIDATE_RSDP_SIG (ACPI_CAST_PTR (ACPI_TABLE_RSDP,
-        Header)->Signature))
-    {
-#ifdef _STANDALONE
-    	printf("RSDP_SIG statement.\n");
+
+    /* Subsystem appears active, go ahead and shut it down */
+
+    AcpiGbl_Shutdown = TRUE;
+    AcpiGbl_StartupFlags = 0;
+    ACPI_DEBUG_PRINT ((ACPI_DB_INFO, "Shutting down ACPI Subsystem\n"));
+
+#ifndef ACPI_ASL_COMPILER
+
+    /* Close the AcpiEvent Handling */
+    /* Do we need to define ACPI_ASL_COMPILER?
+     * XXX
+    AcpiEvTerminate ();
+    */
+
+    /* Delete any dynamic _OSI interfaces */
+
+    AcpiUtInterfaceTerminate ();
 #endif
-        /* RSDP has no common fields */
 
-        memcpy (LocalHeader.OemId, ACPI_CAST_PTR (ACPI_TABLE_RSDP,
-            Header)->OemId, ACPI_OEM_ID_SIZE);
-        AcpiTbFixString (LocalHeader.OemId, ACPI_OEM_ID_SIZE);
+    /* Close the Namespace */
 
-        ACPI_INFO (("RSDP 0x%8.8X%8.8X %06X (v%.2d %-6.6s)",
-            ACPI_FORMAT_UINT64 (Address),
-            (ACPI_CAST_PTR (ACPI_TABLE_RSDP, Header)->Revision > 0) ?
-                ACPI_CAST_PTR (ACPI_TABLE_RSDP, Header)->Length : 20,
-            ACPI_CAST_PTR (ACPI_TABLE_RSDP, Header)->Revision,
-            LocalHeader.OemId));
-    }
-    else
-    {
-#ifdef _STANDALONE
-    	printf("Standard ACPI statement.\n");
-#endif
-        /* Standard ACPI table with full common header */
+    AcpiNsTerminate ();
 
-        AcpiTbCleanupTableHeader (&LocalHeader, Header);
+    /* Delete the ACPI tables */
 
-        ACPI_INFO ((
-            "%-4.4s 0x%8.8X%8.8X"
-            " %06X (v%.2d %-6.6s %-8.8s %08X %-4.4s %08X)",
-            LocalHeader.Signature, ACPI_FORMAT_UINT64 (Address),
-            LocalHeader.Length, LocalHeader.Revision, LocalHeader.OemId,
-            LocalHeader.OemTableId, LocalHeader.OemRevision,
-            LocalHeader.AslCompilerId, LocalHeader.AslCompilerRevision));
-    }
+    AcpiTbTerminate ();
+
+    /* Close the globals */
+
+    AcpiUtTerminate ();
+
+    /* Purge the local caches */
+
+    (void) AcpiUtDeleteCaches ();
+    return_VOID;
 }

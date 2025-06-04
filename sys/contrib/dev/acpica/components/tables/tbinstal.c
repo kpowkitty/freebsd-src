@@ -205,6 +205,10 @@ AcpiTbInstallTableWithOverride (
     AcpiTbInitTableDescriptor (&AcpiGbl_RootTableList.Tables[i],
         NewTableDesc->Address, NewTableDesc->Flags, NewTableDesc->Pointer);
 
+#ifdef _STANDALONE
+    printf("NewTableDesc->Address: %lu.\n", NewTableDesc->Address);
+#endif
+
     AcpiTbPrintTableHeader (NewTableDesc->Address, NewTableDesc->Pointer);
 
     /* This synchronizes AcpiGbl_DsdtIndex */

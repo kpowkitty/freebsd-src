@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Module Name: tbprint - Table output utilities
+ * Module Name: utxfinit - External interfaces for ACPICA initialization
  *
  *****************************************************************************/
 
@@ -149,160 +149,210 @@
  *
  *****************************************************************************/
 
+#define EXPORT_ACPI_INTERFACES
+
 #include <contrib/dev/acpica/include/acpi.h>
 #include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acevents.h>
+#include <contrib/dev/acpica/include/acnamesp.h>
+#include <contrib/dev/acpica/include/acdebug.h>
 #include <contrib/dev/acpica/include/actables.h>
-#include <contrib/dev/acpica/include/acdisasm.h>
-#include <contrib/dev/acpica/include/acutils.h>
 
-#define _COMPONENT          ACPI_TABLES
-        ACPI_MODULE_NAME    ("tbprint")
+#define _COMPONENT          ACPI_UTILITIES
+        ACPI_MODULE_NAME    ("utxfinit")
 
-
-/* Local prototypes */
-
-static void
-AcpiTbFixString (
-    char                    *String,
-    ACPI_SIZE               Length);
-
-static void
-AcpiTbCleanupTableHeader (
-    ACPI_TABLE_HEADER       *OutHeader,
-    ACPI_TABLE_HEADER       *Header);
-
-
-/*******************************************************************************
- *
- * FUNCTION:    AcpiTbFixString
- *
- * PARAMETERS:  String              - String to be repaired
- *              Length              - Maximum length
- *
- * RETURN:      None
- *
- * DESCRIPTION: Replace every non-printable or non-ascii byte in the string
- *              with a question mark '?'.
- *
- ******************************************************************************/
-
-static void
-AcpiTbFixString (
-    char                    *String,
-    ACPI_SIZE               Length)
-{
-
-    while (Length && *String)
-    {
-        if (!isprint ((int) (UINT8) *String))
-        {
-            *String = '?';
-        }
-
-        String++;
-        Length--;
-    }
-}
-
-
-/*******************************************************************************
- *
- * FUNCTION:    AcpiTbCleanupTableHeader
- *
- * PARAMETERS:  OutHeader           - Where the cleaned header is returned
- *              Header              - Input ACPI table header
- *
- * RETURN:      Returns the cleaned header in OutHeader
- *
- * DESCRIPTION: Copy the table header and ensure that all "string" fields in
- *              the header consist of printable characters.
- *
- ******************************************************************************/
-
-static void
-AcpiTbCleanupTableHeader (
-    ACPI_TABLE_HEADER       *OutHeader,
-    ACPI_TABLE_HEADER       *Header)
-{
-
-    memcpy (OutHeader, Header, sizeof (ACPI_TABLE_HEADER));
-
-    AcpiTbFixString (OutHeader->Signature, ACPI_NAMESEG_SIZE);
-    AcpiTbFixString (OutHeader->OemId, ACPI_OEM_ID_SIZE);
-    AcpiTbFixString (OutHeader->OemTableId, ACPI_OEM_TABLE_ID_SIZE);
-    AcpiTbFixString (OutHeader->AslCompilerId, ACPI_NAMESEG_SIZE);
-}
-
-
-/*******************************************************************************
- *
- * FUNCTION:    AcpiTbPrintTableHeader
- *
- * PARAMETERS:  Address             - Table physical address
- *              Header              - Table header
- *
- * RETURN:      None
- *
- * DESCRIPTION: Print an ACPI table header. Special cases for FACS and RSDP.
- *
- ******************************************************************************/
-
+/* For AcpiExec only */
 void
-AcpiTbPrintTableHeader (
-    ACPI_PHYSICAL_ADDRESS   Address,
-    ACPI_TABLE_HEADER       *Header)
+AeDoObjectOverrides (
+    void);
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiInitializeSubsystem
+ *
+ * PARAMETERS:  None
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Initializes all global variables. This is the first function
+ *              called, so any early initialization belongs here.
+ *
+ ******************************************************************************/
+
+ACPI_STATUS ACPI_INIT_FUNCTION
+AcpiInitializeSubsystem (
+    void)
 {
-    ACPI_TABLE_HEADER       LocalHeader;
+    ACPI_STATUS             Status;
 
-#ifdef _STANDALONE
-    	printf("Inside AcpiTbPrintTableHeader.\n");
-#endif
 
-    if (ACPI_COMPARE_NAMESEG (Header->Signature, ACPI_SIG_FACS))
+    ACPI_FUNCTION_TRACE (AcpiInitializeSubsystem);
+
+
+    AcpiGbl_StartupFlags = ACPI_SUBSYSTEM_INITIALIZE;
+    ACPI_DEBUG_EXEC (AcpiUtInitStackPtrTrace ());
+
+    /* Initialize the OS-Dependent layer */
+
+    Status = AcpiOsInitialize ();
+    if (ACPI_FAILURE (Status))
     {
-#ifdef _STANDALONE
-    	printf("FACS statement.\n");
-#endif
-        /* FACS only has signature and length fields */
-
-        ACPI_INFO (("%-4.4s 0x%8.8X%8.8X %06X",
-            Header->Signature, ACPI_FORMAT_UINT64 (Address),
-            Header->Length));
+        ACPI_EXCEPTION ((AE_INFO, Status, "During OSL initialization"));
+        return_ACPI_STATUS (Status);
     }
-    else if (ACPI_VALIDATE_RSDP_SIG (ACPI_CAST_PTR (ACPI_TABLE_RSDP,
-        Header)->Signature))
+
+    /* Initialize all globals used by the subsystem */
+
+    Status = AcpiUtInitGlobals ();
+    if (ACPI_FAILURE (Status))
     {
-#ifdef _STANDALONE
-    	printf("RSDP_SIG statement.\n");
-#endif
-        /* RSDP has no common fields */
-
-        memcpy (LocalHeader.OemId, ACPI_CAST_PTR (ACPI_TABLE_RSDP,
-            Header)->OemId, ACPI_OEM_ID_SIZE);
-        AcpiTbFixString (LocalHeader.OemId, ACPI_OEM_ID_SIZE);
-
-        ACPI_INFO (("RSDP 0x%8.8X%8.8X %06X (v%.2d %-6.6s)",
-            ACPI_FORMAT_UINT64 (Address),
-            (ACPI_CAST_PTR (ACPI_TABLE_RSDP, Header)->Revision > 0) ?
-                ACPI_CAST_PTR (ACPI_TABLE_RSDP, Header)->Length : 20,
-            ACPI_CAST_PTR (ACPI_TABLE_RSDP, Header)->Revision,
-            LocalHeader.OemId));
+        ACPI_EXCEPTION ((AE_INFO, Status, "During initialization of globals"));
+        return_ACPI_STATUS (Status);
     }
-    else
+
+    /* Create the default mutex objects */
+
+    Status = AcpiUtMutexInitialize ();
+    if (ACPI_FAILURE (Status))
     {
-#ifdef _STANDALONE
-    	printf("Standard ACPI statement.\n");
-#endif
-        /* Standard ACPI table with full common header */
-
-        AcpiTbCleanupTableHeader (&LocalHeader, Header);
-
-        ACPI_INFO ((
-            "%-4.4s 0x%8.8X%8.8X"
-            " %06X (v%.2d %-6.6s %-8.8s %08X %-4.4s %08X)",
-            LocalHeader.Signature, ACPI_FORMAT_UINT64 (Address),
-            LocalHeader.Length, LocalHeader.Revision, LocalHeader.OemId,
-            LocalHeader.OemTableId, LocalHeader.OemRevision,
-            LocalHeader.AslCompilerId, LocalHeader.AslCompilerRevision));
+        ACPI_EXCEPTION ((AE_INFO, Status, "During Global Mutex creation"));
+        return_ACPI_STATUS (Status);
     }
+
+    /*
+     * Initialize the namespace manager and
+     * the root of the namespace tree
+     */
+    Status = AcpiNsRootInitialize ();
+    if (ACPI_FAILURE (Status))
+    {
+        ACPI_EXCEPTION ((AE_INFO, Status, "During Namespace initialization"));
+        return_ACPI_STATUS (Status);
+    }
+
+    /* Initialize the global OSI interfaces list with the static names */
+
+    Status = AcpiUtInitializeInterfaces ();
+    if (ACPI_FAILURE (Status))
+    {
+        ACPI_EXCEPTION ((AE_INFO, Status, "During OSI interfaces initialization"));
+        return_ACPI_STATUS (Status);
+    }
+
+    return_ACPI_STATUS (AE_OK);
 }
+
+ACPI_EXPORT_SYMBOL_INIT (AcpiInitializeSubsystem)
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiEnableSubsystem
+ *
+ * PARAMETERS:  Flags               - Init/enable Options
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Completes the subsystem initialization including hardware.
+ *              Puts system into ACPI mode if it isn't already.
+ *
+ ******************************************************************************/
+
+ACPI_STATUS ACPI_INIT_FUNCTION
+AcpiEnableSubsystem (
+    UINT32                  Flags)
+{
+    ACPI_STATUS             Status = AE_OK;
+
+
+    ACPI_FUNCTION_TRACE (AcpiEnableSubsystem);
+
+
+    /*
+     * The early initialization phase is complete. The namespace is loaded,
+     * and we can now support address spaces other than Memory, I/O, and
+     * PCI_Config.
+     */
+    AcpiGbl_EarlyInitialization = FALSE;
+
+    /*
+     * Obtain a permanent mapping for the FACS. This is required for the
+     * Global Lock and the Firmware Waking Vector
+     */
+    if (!(Flags & ACPI_NO_FACS_INIT))
+    {
+        Status = AcpiTbInitializeFacs ();
+        if (ACPI_FAILURE (Status))
+        {
+            ACPI_WARNING ((AE_INFO, "Could not map the FACS table"));
+            return_ACPI_STATUS (Status);
+        }
+    }
+
+#if (!ACPI_REDUCED_HARDWARE)
+
+    /* Enable ACPI mode */
+
+    if (!(Flags & ACPI_NO_ACPI_ENABLE))
+    {
+        ACPI_DEBUG_PRINT ((ACPI_DB_EXEC, "[Init] Going into ACPI mode\n"));
+
+        AcpiGbl_OriginalMode = AcpiHwGetMode();
+
+        Status = AcpiEnable ();
+        if (ACPI_FAILURE (Status))
+        {
+            ACPI_WARNING ((AE_INFO, "AcpiEnable failed"));
+            return_ACPI_STATUS (Status);
+        }
+    }
+
+    /*
+     * Initialize ACPI Event handling (Fixed and General Purpose)
+     *
+     * Note1: We must have the hardware and events initialized before we can
+     * execute any control methods safely. Any control method can require
+     * ACPI hardware support, so the hardware must be fully initialized before
+     * any method execution!
+     *
+     * Note2: Fixed events are initialized and enabled here. GPEs are
+     * initialized, but cannot be enabled until after the hardware is
+     * completely initialized (SCI and GlobalLock activated) and the various
+     * initialization control methods are run (_REG, _STA, _INI) on the
+     * entire namespace.
+     */
+    if (!(Flags & ACPI_NO_EVENT_INIT))
+    {
+        ACPI_DEBUG_PRINT ((ACPI_DB_EXEC,
+            "[Init] Initializing ACPI events\n"));
+
+        Status = AcpiEvInitializeEvents ();
+        if (ACPI_FAILURE (Status))
+        {
+            return_ACPI_STATUS (Status);
+        }
+    }
+
+    /*
+     * Install the SCI handler and Global Lock handler. This completes the
+     * hardware initialization.
+     */
+    if (!(Flags & ACPI_NO_HANDLER_INIT))
+    {
+        ACPI_DEBUG_PRINT ((ACPI_DB_EXEC,
+            "[Init] Installing SCI/GL handlers\n"));
+
+        Status = AcpiEvInstallXruptHandlers ();
+        if (ACPI_FAILURE (Status))
+        {
+            return_ACPI_STATUS (Status);
+        }
+    }
+
+#endif /* !ACPI_REDUCED_HARDWARE */
+
+    return_ACPI_STATUS (Status);
+}
+
+ACPI_EXPORT_SYMBOL_INIT (AcpiEnableSubsystem)

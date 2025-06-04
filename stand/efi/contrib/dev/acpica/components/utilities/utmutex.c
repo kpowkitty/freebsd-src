@@ -1,8 +1,8 @@
-/******************************************************************************
+/*******************************************************************************
  *
- * Module Name: tbprint - Table output utilities
+ * Module Name: utmutex - local mutex support
  *
- *****************************************************************************/
+ ******************************************************************************/
 
 /******************************************************************************
  *
@@ -149,160 +149,151 @@
  *
  *****************************************************************************/
 
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
-#include <contrib/dev/acpica/include/actables.h>
-#include <contrib/dev/acpica/include/acdisasm.h>
-#include <contrib/dev/acpica/include/acutils.h>
+#include <acpi.h>
+#include <accommon.h>
 
-#define _COMPONENT          ACPI_TABLES
-        ACPI_MODULE_NAME    ("tbprint")
-
+#define _COMPONENT          ACPI_UTILITIES
+        ACPI_MODULE_NAME    ("utmutex")
 
 /* Local prototypes */
 
-static void
-AcpiTbFixString (
-    char                    *String,
-    ACPI_SIZE               Length);
+static ACPI_STATUS
+AcpiUtCreateMutex (
+    ACPI_MUTEX_HANDLE       MutexId);
 
 static void
-AcpiTbCleanupTableHeader (
-    ACPI_TABLE_HEADER       *OutHeader,
-    ACPI_TABLE_HEADER       *Header);
+AcpiUtDeleteMutex (
+    ACPI_MUTEX_HANDLE       MutexId);
 
 
 /*******************************************************************************
  *
- * FUNCTION:    AcpiTbFixString
+ * FUNCTION:    AcpiUtMutexInitialize
  *
- * PARAMETERS:  String              - String to be repaired
- *              Length              - Maximum length
+ * PARAMETERS:  None.
  *
- * RETURN:      None
+ * RETURN:      Status
  *
- * DESCRIPTION: Replace every non-printable or non-ascii byte in the string
- *              with a question mark '?'.
+ * DESCRIPTION:	Loader is single-threaded, so do nothing. 
  *
  ******************************************************************************/
 
-static void
-AcpiTbFixString (
-    char                    *String,
-    ACPI_SIZE               Length)
+ACPI_STATUS
+AcpiUtMutexInitialize (
+    void)
 {
+    ACPI_FUNCTION_TRACE (UtMutexInitialize);
 
-    while (Length && *String)
-    {
-        if (!isprint ((int) (UINT8) *String))
-        {
-            *String = '?';
-        }
-
-        String++;
-        Length--;
-    }
+    return_ACPI_STATUS (AE_OK);
 }
 
 
 /*******************************************************************************
  *
- * FUNCTION:    AcpiTbCleanupTableHeader
+ * FUNCTION:    AcpiUtMutexTerminate
  *
- * PARAMETERS:  OutHeader           - Where the cleaned header is returned
- *              Header              - Input ACPI table header
+ * PARAMETERS:  None.
  *
- * RETURN:      Returns the cleaned header in OutHeader
+ * RETURN:      None.
  *
- * DESCRIPTION: Copy the table header and ensure that all "string" fields in
- *              the header consist of printable characters.
- *
- ******************************************************************************/
-
-static void
-AcpiTbCleanupTableHeader (
-    ACPI_TABLE_HEADER       *OutHeader,
-    ACPI_TABLE_HEADER       *Header)
-{
-
-    memcpy (OutHeader, Header, sizeof (ACPI_TABLE_HEADER));
-
-    AcpiTbFixString (OutHeader->Signature, ACPI_NAMESEG_SIZE);
-    AcpiTbFixString (OutHeader->OemId, ACPI_OEM_ID_SIZE);
-    AcpiTbFixString (OutHeader->OemTableId, ACPI_OEM_TABLE_ID_SIZE);
-    AcpiTbFixString (OutHeader->AslCompilerId, ACPI_NAMESEG_SIZE);
-}
-
-
-/*******************************************************************************
- *
- * FUNCTION:    AcpiTbPrintTableHeader
- *
- * PARAMETERS:  Address             - Table physical address
- *              Header              - Table header
- *
- * RETURN:      None
- *
- * DESCRIPTION: Print an ACPI table header. Special cases for FACS and RSDP.
- *
+ * DESCRIPTION: Loader is single-threaded, so do nothing.
+ * 
  ******************************************************************************/
 
 void
-AcpiTbPrintTableHeader (
-    ACPI_PHYSICAL_ADDRESS   Address,
-    ACPI_TABLE_HEADER       *Header)
+AcpiUtMutexTerminate (
+    void)
 {
-    ACPI_TABLE_HEADER       LocalHeader;
+    ACPI_FUNCTION_TRACE (UtMutexTerminate);
+	/* Do nothing. */
+}
 
-#ifdef _STANDALONE
-    	printf("Inside AcpiTbPrintTableHeader.\n");
-#endif
 
-    if (ACPI_COMPARE_NAMESEG (Header->Signature, ACPI_SIG_FACS))
-    {
-#ifdef _STANDALONE
-    	printf("FACS statement.\n");
-#endif
-        /* FACS only has signature and length fields */
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiUtCreateMutex
+ *
+ * PARAMETERS:  MutexID         - ID of the mutex to be created
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Loader is single-threaded, so do nothing.
+ *
+ ******************************************************************************/
 
-        ACPI_INFO (("%-4.4s 0x%8.8X%8.8X %06X",
-            Header->Signature, ACPI_FORMAT_UINT64 (Address),
-            Header->Length));
-    }
-    else if (ACPI_VALIDATE_RSDP_SIG (ACPI_CAST_PTR (ACPI_TABLE_RSDP,
-        Header)->Signature))
-    {
-#ifdef _STANDALONE
-    	printf("RSDP_SIG statement.\n");
-#endif
-        /* RSDP has no common fields */
+static ACPI_STATUS
+AcpiUtCreateMutex (
+    ACPI_MUTEX_HANDLE       MutexId)
+{
+    ACPI_STATUS             Status = AE_OK;
 
-        memcpy (LocalHeader.OemId, ACPI_CAST_PTR (ACPI_TABLE_RSDP,
-            Header)->OemId, ACPI_OEM_ID_SIZE);
-        AcpiTbFixString (LocalHeader.OemId, ACPI_OEM_ID_SIZE);
 
-        ACPI_INFO (("RSDP 0x%8.8X%8.8X %06X (v%.2d %-6.6s)",
-            ACPI_FORMAT_UINT64 (Address),
-            (ACPI_CAST_PTR (ACPI_TABLE_RSDP, Header)->Revision > 0) ?
-                ACPI_CAST_PTR (ACPI_TABLE_RSDP, Header)->Length : 20,
-            ACPI_CAST_PTR (ACPI_TABLE_RSDP, Header)->Revision,
-            LocalHeader.OemId));
-    }
-    else
-    {
-#ifdef _STANDALONE
-    	printf("Standard ACPI statement.\n");
-#endif
-        /* Standard ACPI table with full common header */
+    ACPI_FUNCTION_TRACE_U32 (UtCreateMutex, MutexId);
 
-        AcpiTbCleanupTableHeader (&LocalHeader, Header);
+    return_ACPI_STATUS (Status);
+}
 
-        ACPI_INFO ((
-            "%-4.4s 0x%8.8X%8.8X"
-            " %06X (v%.2d %-6.6s %-8.8s %08X %-4.4s %08X)",
-            LocalHeader.Signature, ACPI_FORMAT_UINT64 (Address),
-            LocalHeader.Length, LocalHeader.Revision, LocalHeader.OemId,
-            LocalHeader.OemTableId, LocalHeader.OemRevision,
-            LocalHeader.AslCompilerId, LocalHeader.AslCompilerRevision));
-    }
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiUtDeleteMutex
+ *
+ * PARAMETERS:  MutexID         - ID of the mutex to be deleted
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Loader is single-threaded, so do nothing.
+ *
+ ******************************************************************************/
+
+static void
+AcpiUtDeleteMutex (
+    ACPI_MUTEX_HANDLE       MutexId)
+{
+
+    ACPI_FUNCTION_TRACE_U32 (UtDeleteMutex, MutexId);
+
+    return_VOID;
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiUtAcquireMutex
+ *
+ * PARAMETERS:  MutexID         - ID of the mutex to be acquired
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Loader is single-threaded, so do nothing.
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AcpiUtAcquireMutex (
+    ACPI_MUTEX_HANDLE       MutexId)
+{
+    return (AE_OK);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiUtReleaseMutex
+ *
+ * PARAMETERS:  MutexID         - ID of the mutex to be released
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Loader is single-threaded, so do nothing.
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AcpiUtReleaseMutex (
+    ACPI_MUTEX_HANDLE       MutexId)
+{
+    ACPI_FUNCTION_NAME (UtReleaseMutex);
+
+    return (AE_OK);
 }

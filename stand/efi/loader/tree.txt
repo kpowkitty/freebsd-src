@@ -1,0 +1,71 @@
+File: [./components/namespace/nsxfeval.c], Function: [AcpiEvaluateObject].
+File: [./components/namespace/nsxfeval.c], Function: [AcpiNsResolveReferences].
+File: [./components/utilities/utobject.c], Function: [AcpiUtGetPackageObjectSize].
+File: [./components/utilities/utmisc.c], Function: [AcpiUtWalkPackageTree].
+  File: [./components/utilities/utstate.c], Function: [AcpiUtCreatePkgState].
+    File: [./components/utilities/utstate.c], Function: [AcpiUtCreateGenericState].
+    File: [./components/utilities/utcache.c], Function: [AcpiOsAcquireObject].
+      File: [./components/utilities/utmutex.c], Function: [AcpiUtAcquireMutex].
+        File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsGetThreadId].
+        File: [./components/utilities/utdecode.c], Function: [AcpiUtGetMutexName].
+      File: [./components/utilities/utmutex.c], Function: [AcpiUtReleaseMutex].
+        File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsGetThreadId].
+        File: [./components/utilities/utdecode.c], Function: [AcpiUtGetMutexName].
+  File: [./components/utilities/utstate.c], Function: [AcpiUtDeleteGenericState].
+    File: [./components/utilities/utcache.c], Function: [AcpiOsReleaseObject].
+      File: [./components/utilities/utmutex.c], Function: [AcpiUtAcquireMutex].
+      File: [./components/utilities/utmutex.c], Function: [AcpiUtReleaseMutex].
+  File: [./components/utilities/utstate.c], Function: [AcpiUtPopGenericState].
+  File: [./components/utilities/utstate.c], Function: [AcpiUtPushGenericState].
+    File: [./components/utilities/utstate.c], Function: [        ACPI_MODULE_NAME   "utstate")].
+    File: [./components/utilities/utstate.c], Function: [AcpiUtCreateControlState].
+    File: [./components/utilities/utcache.c], Function: [AcpiOsAcquireObject].
+    File: [./components/utilities/utcache.c], Function: [AcpiOsAcquireObject].
+    File: [./components/utilities/utstate.c], Function: [AcpiUtCreateThreadState].
+    File: [./components/utilities/utcache.c], Function: [AcpiOsAcquireObject].
+    File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsGetThreadId].
+    File: [./components/utilities/utstate.c], Function: [AcpiUtCreateUpdateState].
+    File: [./components/utilities/utcache.c], Function: [AcpiOsAcquireObject].
+    File: [./components/utilities/utcache.c], Function: [AcpiOsReleaseObject].
+File: [./components/utilities/utobject.c], Function: [AcpiUtGetElementLength].
+File: [./components/utilities/utobject.c], Function: [AcpiUtGetSimpleObjectSize].
+File: [./components/namespace/nsnames.c], Function: [AcpiNsGetPathnameLength].
+  File: [./components/namespace/nsnames.c], Function: [AcpiNsBuildNormalizedPath].
+File: [./components/utilities/utdecode.c], Function: [AcpiUtGetReferenceName].
+File: [./components/utilities/utdecode.c], Function: [AcpiUtGetObjectTypeName].
+  File: [./components/utilities/utdecode.c], Function: [AcpiUtGetDescriptorName].
+  File: [./components/utilities/utdecode.c], Function: [AcpiUtGetTypeName].
+File: [./components/namespace/nsnames.c], Function: [AcpiNsGetPathnameLength].
+File: [./components/utilities/utdecode.c], Function: [AcpiUtGetReferenceName].
+File: [./components/utilities/utdecode.c], Function: [AcpiUtGetObjectTypeName].
+File: [./components/utilities/utalloc.c
+./os_specific/service_layers/osunixxf.c], Function: [AcpiOsAllocate].
+File: [./components/utilities/utmutex.c], Function: [AcpiUtAcquireMutex].
+File: [./components/utilities/utmutex.c], Function: [AcpiUtReleaseMutex].
+File: [./components/utilities/utobject.c], Function: [AcpiUtValidInternalObject].
+  File: [./components/utilities/utdecode.c], Function: [AcpiUtGetDescriptorName].
+File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsAcquireLock].
+  File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsWaitSemaphore].
+File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsReleaseLock].
+  File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsSignalSemaphore].
+File: [./components/utilities/utdecode.c], Function: [AcpiUtGetObjectTypeName].
+File: [./components/events/evgpeblk.c], Function: [AcpiEvDeleteGpeBlock].
+  File: [./components/utilities/utmutex.c], Function: [AcpiUtAcquireMutex].
+  File: [./components/hardware/hwgpe.c], Function: [AcpiHwDisableGpeBlock].
+    File: [./components/hardware/hwgpe.c], Function: [AcpiHwGpeEnableWrite].
+    File: [./components/hardware/hwregs.c
+./components/hardware/hwvalid.c], Function: [AcpiHwWrite].
+  File: [./components/events/evgpeutil.c], Function: [AcpiEvDeleteGpeXrupt].
+    File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsRemoveInterruptHandler].
+    File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsAcquireLock].
+    File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsReleaseLock].
+  File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsAcquireLock].
+  File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsReleaseLock].
+  File: [./components/utilities/utmutex.c], Function: [AcpiUtReleaseMutex].
+File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsDeleteSemaphore].
+File: [./components/utilities/utobject.c], Function: [AcpiUtValidInternalObject].
+File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsAcquireLock].
+File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsReleaseLock].
+File: [./components/utilities/utdecode.c], Function: [AcpiUtGetObjectTypeName].
+File: [./components/events/evgpeblk.c], Function: [AcpiEvDeleteGpeBlock].
+File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsDeleteSemaphore].
