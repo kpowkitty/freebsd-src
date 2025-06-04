@@ -1,8 +1,8 @@
-/******************************************************************************
+/*******************************************************************************
  *
- * Name: accommon.h - Common include files for generation of ACPICA source
+ * Module Name: utmutex - local mutex support
  *
- *****************************************************************************/
+ ******************************************************************************/
 
 /******************************************************************************
  *
@@ -149,30 +149,151 @@
  *
  *****************************************************************************/
 
-#ifndef __ACCOMMON_H__
-#define __ACCOMMON_H__
+#include <acpi.h>
+#include <accommon.h>
 
-/*
- * Common set of includes for all ACPICA source files.
- * We put them here because we don't want to duplicate them
- * in the source code again and again.
+#define _COMPONENT          ACPI_UTILITIES
+        ACPI_MODULE_NAME    ("utmutex")
+
+/* Local prototypes */
+
+static ACPI_STATUS
+AcpiUtCreateMutex (
+    ACPI_MUTEX_HANDLE       MutexId);
+
+static void
+AcpiUtDeleteMutex (
+    ACPI_MUTEX_HANDLE       MutexId);
+
+
+/*******************************************************************************
  *
- * Note: The order of these include files is important.
- */
-#include <contrib/dev/acpica/include/acconfig.h>           /* Global configuration constants */
-#include <contrib/dev/acpica/include/acmacros.h>           /* C macros */
-#include <contrib/dev/acpica/include/aclocal.h>            /* Internal data types */
-#include <contrib/dev/acpica/include/acobject.h>           /* ACPI internal object */
-#include <contrib/dev/acpica/include/acstruct.h>           /* Common structures */
-#include <contrib/dev/acpica/include/acglobal.h>           /* All global variables */
-#include <contrib/dev/acpica/include/achware.h>            /* Hardware defines and interfaces */
-#include <contrib/dev/acpica/include/acutils.h>            /* Utility interfaces */
-#ifndef ACPI_USE_SYSTEM_CLIBRARY
-#include <contrib/dev/acpica/include/acclib.h>             /* C library interfaces */
-#endif /* !ACPI_USE_SYSTEM_CLIBRARY */
-#ifdef _STANDALONE
-#include <stand.h>
-#endif
+ * FUNCTION:    AcpiUtMutexInitialize
+ *
+ * PARAMETERS:  None.
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION:	Loader is single-threaded, so do nothing. 
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AcpiUtMutexInitialize (
+    void)
+{
+    ACPI_FUNCTION_TRACE (UtMutexInitialize);
+
+    return_ACPI_STATUS (AE_OK);
+}
 
 
-#endif /* __ACCOMMON_H__ */
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiUtMutexTerminate
+ *
+ * PARAMETERS:  None.
+ *
+ * RETURN:      None.
+ *
+ * DESCRIPTION: Loader is single-threaded, so do nothing.
+ * 
+ ******************************************************************************/
+
+void
+AcpiUtMutexTerminate (
+    void)
+{
+    ACPI_FUNCTION_TRACE (UtMutexTerminate);
+	/* Do nothing. */
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiUtCreateMutex
+ *
+ * PARAMETERS:  MutexID         - ID of the mutex to be created
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Loader is single-threaded, so do nothing.
+ *
+ ******************************************************************************/
+
+static ACPI_STATUS
+AcpiUtCreateMutex (
+    ACPI_MUTEX_HANDLE       MutexId)
+{
+    ACPI_STATUS             Status = AE_OK;
+
+
+    ACPI_FUNCTION_TRACE_U32 (UtCreateMutex, MutexId);
+
+    return_ACPI_STATUS (Status);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiUtDeleteMutex
+ *
+ * PARAMETERS:  MutexID         - ID of the mutex to be deleted
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Loader is single-threaded, so do nothing.
+ *
+ ******************************************************************************/
+
+static void
+AcpiUtDeleteMutex (
+    ACPI_MUTEX_HANDLE       MutexId)
+{
+
+    ACPI_FUNCTION_TRACE_U32 (UtDeleteMutex, MutexId);
+
+    return_VOID;
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiUtAcquireMutex
+ *
+ * PARAMETERS:  MutexID         - ID of the mutex to be acquired
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Loader is single-threaded, so do nothing.
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AcpiUtAcquireMutex (
+    ACPI_MUTEX_HANDLE       MutexId)
+{
+    return (AE_OK);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiUtReleaseMutex
+ *
+ * PARAMETERS:  MutexID         - ID of the mutex to be released
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Loader is single-threaded, so do nothing.
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AcpiUtReleaseMutex (
+    ACPI_MUTEX_HANDLE       MutexId)
+{
+    ACPI_FUNCTION_NAME (UtReleaseMutex);
+
+    return (AE_OK);
+}
