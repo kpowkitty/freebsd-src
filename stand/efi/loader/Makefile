@@ -30,6 +30,54 @@ SRCS=	autoload.c \
 	gfx_fb.c \
 	8x16.c
 
+# ACPICA Loader Initialization
+# XXX Try to trim amount src'd if possible...
+CFLAGS+=	-DACPI_USE_SYSTEM_CLIBRARY \
+		-DACPI_SINGLE_THREADED \
+		-DACPI_USE_NATIVE_RSDP_POINTER \
+		-DACPI_USE_NATIVE_MEMORY_MAPPING \
+		-DACPI_EXCLUDE
+
+SRCS+=	libefi.c \
+	OsdMemory.c \
+	utstate.c \
+	utglobal.c \
+	utinit.c \
+	init_acpi.c \
+	nswalk.c \
+	nssearch.c \
+	nsnames.c \
+	nsutils.c \
+	nsaccess.c \
+	nsalloc.c \
+	nsobject.c \
+	tbdata.c \
+	tbfadt.c \
+	tbinstal.c \
+	tbprint.c \
+	tbutils.c \
+	tbxface.c \
+	tbxfroot.c \
+	tbfind.c \
+	utmisc.c \
+	utalloc.c \
+	utxferror.c \
+	utexcep.c \
+	utaddress.c \
+	utascii.c \
+	utcache.c \
+	utcksum.c \
+	utdebug.c \
+	utdecode.c \
+	utdelete.c \
+	utmutex.c \
+	utobject.c \
+	utosi.c \
+	utstring.c \
+	utxfinit.c \
+	dswscope.c \
+	osunixxf.c
+
 CFLAGS+=	-I${.CURDIR}/../loader
 .if ${MK_LOADER_ZFS} != "no"
 CFLAGS+=	-I${ZFSSRC}
@@ -59,6 +107,16 @@ CWARNFLAGS.main.c+=	-Wno-format
 
 .PATH: ${.CURDIR}/../loader
 .PATH: ${.CURDIR}/../loader/arch/${__arch}
+.PATH: ${.CURDIR}/../libefi
+.PATH: ${.CURDIR}/../acpica
+.PATH: ${.CURDIR}/../acpica/Osd
+.PATH: ${.CURDIR}/../contrib/dev/acpica/os_specific/service_layers
+.PATH: ${.CURDIR}/../contrib/dev/acpica/components/tables
+.PATH: ${.CURDIR}/../contrib/dev/acpica/components/utilities
+.PATH: ${SYSDIR}/contrib/dev/acpica/components/tables
+.PATH: ${SYSDIR}/contrib/dev/acpica/components/namespace
+.PATH: ${SYSDIR}/contrib/dev/acpica/components/utilities
+.PATH: ${SYSDIR}/contrib/dev/acpica/components/dispatcher
 .include "${.CURDIR}/../loader/arch/${__arch}/Makefile.inc"
 
 CFLAGS+=	-I${.CURDIR}
@@ -66,6 +124,7 @@ CFLAGS+=	-I${.CURDIR}/arch/${__arch}
 CFLAGS+=	-I${EFISRC}/include
 CFLAGS+=	-I${EFISRC}/include/${__arch}
 CFLAGS+=	-I${SYSDIR}/contrib/dev/acpica/include
+CFLAGS+=	-I${EFISRC}/acpica/include
 CFLAGS+=	-I${BOOTSRC}/i386/libi386
 CFLAGS+=	-DEFI
 

@@ -1,8 +1,8 @@
-/******************************************************************************
+/*******************************************************************************
  *
- * Name: acfreebsd.h - OS specific defines, etc.
+ * Module Name: utmutex - local mutex support
  *
- *****************************************************************************/
+ ******************************************************************************/
 
 /******************************************************************************
  *
@@ -149,80 +149,151 @@
  *
  *****************************************************************************/
 
-#ifndef __ACFREEBSD_H__
-#define __ACFREEBSD_H__
+#include <acpi.h>
+#include <accommon.h>
+
+#define _COMPONENT          ACPI_UTILITIES
+        ACPI_MODULE_NAME    ("utmutex")
+
+/* Local prototypes */
+
+static ACPI_STATUS
+AcpiUtCreateMutex (
+    ACPI_MUTEX_HANDLE       MutexId);
+
+static void
+AcpiUtDeleteMutex (
+    ACPI_MUTEX_HANDLE       MutexId);
 
 
-#include <sys/types.h>
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiUtMutexInitialize
+ *
+ * PARAMETERS:  None.
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION:	Loader is single-threaded, so do nothing. 
+ *
+ ******************************************************************************/
 
-#ifdef __LP64__
-#define ACPI_MACHINE_WIDTH      64
-#else
-#define ACPI_MACHINE_WIDTH      32
-#endif
+ACPI_STATUS
+AcpiUtMutexInitialize (
+    void)
+{
+    ACPI_FUNCTION_TRACE (UtMutexInitialize);
 
-#define COMPILER_DEPENDENT_INT64        int64_t
-#define COMPILER_DEPENDENT_UINT64       uint64_t
+    return_ACPI_STATUS (AE_OK);
+}
 
-#define ACPI_UINTPTR_T      uintptr_t
 
-#define ACPI_TO_INTEGER(p)  ((uintptr_t)(p))
-#define ACPI_OFFSET(d, f)   __offsetof(d, f)
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiUtMutexTerminate
+ *
+ * PARAMETERS:  None.
+ *
+ * RETURN:      None.
+ *
+ * DESCRIPTION: Loader is single-threaded, so do nothing.
+ * 
+ ******************************************************************************/
 
-#define ACPI_USE_DO_WHILE_0
-#define ACPI_USE_LOCAL_CACHE
-#define ACPI_USE_NATIVE_DIVIDE
-#define ACPI_USE_NATIVE_MATH64
+void
+AcpiUtMutexTerminate (
+    void)
+{
+    ACPI_FUNCTION_TRACE (UtMutexTerminate);
+	/* Do nothing. */
+}
 
-#ifdef _KERNEL
 
-#include <sys/ctype.h>
-#include <sys/param.h>
-#include <sys/stdarg.h>
-#include <sys/systm.h>
-#include <sys/libkern.h>
-#include <machine/acpica_machdep.h>
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiUtCreateMutex
+ *
+ * PARAMETERS:  MutexID         - ID of the mutex to be created
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Loader is single-threaded, so do nothing.
+ *
+ ******************************************************************************/
 
-#include "opt_acpi.h"
+static ACPI_STATUS
+AcpiUtCreateMutex (
+    ACPI_MUTEX_HANDLE       MutexId)
+{
+    ACPI_STATUS             Status = AE_OK;
 
-#define ACPI_MUTEX_TYPE     ACPI_OSL_MUTEX
 
-#ifdef ACPI_DEBUG
-#define ACPI_DEBUG_OUTPUT   /* for backward compatibility */
-#define ACPI_DISASSEMBLER
-#endif
+    ACPI_FUNCTION_TRACE_U32 (UtCreateMutex, MutexId);
 
-#ifdef ACPI_DEBUG_OUTPUT
-#include "opt_ddb.h"
-#ifdef DDB
-#define ACPI_DEBUGGER
-#endif /* DDB */
-#endif /* ACPI_DEBUG_OUTPUT */
+    return_ACPI_STATUS (Status);
+}
 
-#ifdef DEBUGGER_THREADING
-#undef DEBUGGER_THREADING
-#endif /* DEBUGGER_THREADING */
 
-#define DEBUGGER_THREADING  0   /* integrated with DDB */
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiUtDeleteMutex
+ *
+ * PARAMETERS:  MutexID         - ID of the mutex to be deleted
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Loader is single-threaded, so do nothing.
+ *
+ ******************************************************************************/
 
-#ifdef INVARIANTS
-#define ACPI_MUTEX_DEBUG
-#endif
+static void
+AcpiUtDeleteMutex (
+    ACPI_MUTEX_HANDLE       MutexId)
+{
 
-#else /* _KERNEL */
+    ACPI_FUNCTION_TRACE_U32 (UtDeleteMutex, MutexId);
 
-#if __STDC_HOSTED__
-#include <ctype.h>
-#include <unistd.h>
-#endif
+    return_VOID;
+}
 
-#define ACPI_CAST_PTHREAD_T(pthread)    ((ACPI_THREAD_ID) ACPI_TO_INTEGER (pthread))
 
-#define ACPI_USE_STANDARD_HEADERS
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiUtAcquireMutex
+ *
+ * PARAMETERS:  MutexID         - ID of the mutex to be acquired
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Loader is single-threaded, so do nothing.
+ *
+ ******************************************************************************/
 
-#define ACPI_FLUSH_CPU_CACHE()
-#define __cdecl
+ACPI_STATUS
+AcpiUtAcquireMutex (
+    ACPI_MUTEX_HANDLE       MutexId)
+{
+    return (AE_OK);
+}
 
-#endif /* _KERNEL */
 
-#endif /* __ACFREEBSD_H__ */
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiUtReleaseMutex
+ *
+ * PARAMETERS:  MutexID         - ID of the mutex to be released
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Loader is single-threaded, so do nothing.
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AcpiUtReleaseMutex (
+    ACPI_MUTEX_HANDLE       MutexId)
+{
+    ACPI_FUNCTION_NAME (UtReleaseMutex);
+
+    return (AE_OK);
+}
