@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Name: acfreebsd.h - OS specific defines, etc.
+ * Module Name: utaddress - OpRegion address range check
  *
  *****************************************************************************/
 
@@ -149,80 +149,275 @@
  *
  *****************************************************************************/
 
-#ifndef __ACFREEBSD_H__
-#define __ACFREEBSD_H__
+#include <acpi.h>
+#include <accommon.h>
+#include <acnamesp.h>
 
 
-#include <sys/types.h>
+#define _COMPONENT          ACPI_UTILITIES
+        ACPI_MODULE_NAME    ("utaddress")
 
-#ifdef __LP64__
-#define ACPI_MACHINE_WIDTH      64
-#else
-#define ACPI_MACHINE_WIDTH      32
-#endif
 
-#define COMPILER_DEPENDENT_INT64        int64_t
-#define COMPILER_DEPENDENT_UINT64       uint64_t
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiUtAddAddressRange
+ *
+ * PARAMETERS:  SpaceId             - Address space ID
+ *              Address             - OpRegion start address
+ *              Length              - OpRegion length
+ *              RegionNode          - OpRegion namespace node
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Add the Operation Region address range to the global list.
+ *              The only supported Space IDs are Memory and I/O. Called when
+ *              the OpRegion address/length operands are fully evaluated.
+ *
+ * MUTEX:       Locks the namespace
+ *
+ * NOTE: Because this interface is only called when an OpRegion argument
+ * list is evaluated, there cannot be any duplicate RegionNodes.
+ * Duplicate Address/Length values are allowed, however, so that multiple
+ * address conflicts can be detected.
+ *
+ ******************************************************************************/
 
-#define ACPI_UINTPTR_T      uintptr_t
+ACPI_STATUS
+AcpiUtAddAddressRange (
+    ACPI_ADR_SPACE_TYPE     SpaceId,
+    ACPI_PHYSICAL_ADDRESS   Address,
+    UINT32                  Length,
+    ACPI_NAMESPACE_NODE     *RegionNode)
+{
+    ACPI_ADDRESS_RANGE      *RangeInfo;
 
-#define ACPI_TO_INTEGER(p)  ((uintptr_t)(p))
-#define ACPI_OFFSET(d, f)   __offsetof(d, f)
 
-#define ACPI_USE_DO_WHILE_0
-#define ACPI_USE_LOCAL_CACHE
-#define ACPI_USE_NATIVE_DIVIDE
-#define ACPI_USE_NATIVE_MATH64
+    ACPI_FUNCTION_TRACE (UtAddAddressRange);
 
-#ifdef _KERNEL
 
-#include <sys/ctype.h>
-#include <sys/param.h>
-#include <sys/systm.h>
-#include <sys/libkern.h>
-#include <machine/acpica_machdep.h>
-#include <machine/stdarg.h>
+    if ((SpaceId != ACPI_ADR_SPACE_SYSTEM_MEMORY) &&
+        (SpaceId != ACPI_ADR_SPACE_SYSTEM_IO))
+    {
+        return_ACPI_STATUS (AE_OK);
+    }
 
-#include "opt_acpi.h"
+    /* Allocate/init a new info block, add it to the appropriate list */
 
-#define ACPI_MUTEX_TYPE     ACPI_OSL_MUTEX
+    RangeInfo = ACPI_ALLOCATE (sizeof (ACPI_ADDRESS_RANGE));
+    if (!RangeInfo)
+    {
+        return_ACPI_STATUS (AE_NO_MEMORY);
+    }
 
-#ifdef ACPI_DEBUG
-#define ACPI_DEBUG_OUTPUT   /* for backward compatibility */
-#define ACPI_DISASSEMBLER
-#endif
+    RangeInfo->StartAddress = Address;
+    RangeInfo->EndAddress = (Address + Length - 1);
+    RangeInfo->RegionNode = RegionNode;
 
-#ifdef ACPI_DEBUG_OUTPUT
-#include "opt_ddb.h"
-#ifdef DDB
-#define ACPI_DEBUGGER
-#endif /* DDB */
-#endif /* ACPI_DEBUG_OUTPUT */
+    RangeInfo->Next = AcpiGbl_AddressRangeList[SpaceId];
+    AcpiGbl_AddressRangeList[SpaceId] = RangeInfo;
 
-#ifdef DEBUGGER_THREADING
-#undef DEBUGGER_THREADING
-#endif /* DEBUGGER_THREADING */
+    ACPI_DEBUG_PRINT ((ACPI_DB_NAMES,
+        "\nAdded [%4.4s] address range: 0x%8.8X%8.8X-0x%8.8X%8.8X\n",
+        AcpiUtGetNodeName (RangeInfo->RegionNode),
+        ACPI_FORMAT_UINT64 (Address),
+        ACPI_FORMAT_UINT64 (RangeInfo->EndAddress)));
 
-#define DEBUGGER_THREADING  0   /* integrated with DDB */
+    return_ACPI_STATUS (AE_OK);
+}
 
-#ifdef INVARIANTS
-#define ACPI_MUTEX_DEBUG
-#endif
 
-#else /* _KERNEL */
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiUtRemoveAddressRange
+ *
+ * PARAMETERS:  SpaceId             - Address space ID
+ *              RegionNode          - OpRegion namespace node
+ *
+ * RETURN:      None
+ *
+ * DESCRIPTION: Remove the Operation Region from the global list. The only
+ *              supported Space IDs are Memory and I/O. Called when an
+ *              OpRegion is deleted.
+ *
+ * MUTEX:       Assumes the namespace is locked
+ *
+ ******************************************************************************/
 
-#if __STDC_HOSTED__
-#include <ctype.h>
-#include <unistd.h>
-#endif
+void
+AcpiUtRemoveAddressRange (
+    ACPI_ADR_SPACE_TYPE     SpaceId,
+    ACPI_NAMESPACE_NODE     *RegionNode)
+{
+    ACPI_ADDRESS_RANGE      *RangeInfo;
+    ACPI_ADDRESS_RANGE      *Prev;
 
-#define ACPI_CAST_PTHREAD_T(pthread)    ((ACPI_THREAD_ID) ACPI_TO_INTEGER (pthread))
 
-#define ACPI_USE_STANDARD_HEADERS
+    ACPI_FUNCTION_TRACE (UtRemoveAddressRange);
 
-#define ACPI_FLUSH_CPU_CACHE()
-#define __cdecl
 
-#endif /* _KERNEL */
+    if ((SpaceId != ACPI_ADR_SPACE_SYSTEM_MEMORY) &&
+        (SpaceId != ACPI_ADR_SPACE_SYSTEM_IO))
+    {
+        return_VOID;
+    }
 
-#endif /* __ACFREEBSD_H__ */
+    /* Get the appropriate list head and check the list */
+
+    RangeInfo = Prev = AcpiGbl_AddressRangeList[SpaceId];
+    while (RangeInfo)
+    {
+        if (RangeInfo->RegionNode == RegionNode)
+        {
+            if (RangeInfo == Prev) /* Found at list head */
+            {
+                AcpiGbl_AddressRangeList[SpaceId] = RangeInfo->Next;
+            }
+            else
+            {
+                Prev->Next = RangeInfo->Next;
+            }
+
+            ACPI_DEBUG_PRINT ((ACPI_DB_NAMES,
+                "\nRemoved [%4.4s] address range: 0x%8.8X%8.8X-0x%8.8X%8.8X\n",
+                AcpiUtGetNodeName (RangeInfo->RegionNode),
+                ACPI_FORMAT_UINT64 (RangeInfo->StartAddress),
+                ACPI_FORMAT_UINT64 (RangeInfo->EndAddress)));
+
+            ACPI_FREE (RangeInfo);
+            return_VOID;
+        }
+
+        Prev = RangeInfo;
+        RangeInfo = RangeInfo->Next;
+    }
+
+    return_VOID;
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiUtCheckAddressRange
+ *
+ * PARAMETERS:  SpaceId             - Address space ID
+ *              Address             - Start address
+ *              Length              - Length of address range
+ *              Warn                - TRUE if warning on overlap desired
+ *
+ * RETURN:      Count of the number of conflicts detected. Zero is always
+ *              returned for Space IDs other than Memory or I/O.
+ *
+ * DESCRIPTION: Check if the input address range overlaps any of the
+ *              ASL operation region address ranges. The only supported
+ *              Space IDs are Memory and I/O.
+ *
+ * MUTEX:       Assumes the namespace is locked.
+ *
+ ******************************************************************************/
+
+UINT32
+AcpiUtCheckAddressRange (
+    ACPI_ADR_SPACE_TYPE     SpaceId,
+    ACPI_PHYSICAL_ADDRESS   Address,
+    UINT32                  Length,
+    BOOLEAN                 Warn)
+{
+    ACPI_ADDRESS_RANGE      *RangeInfo;
+    ACPI_PHYSICAL_ADDRESS   EndAddress;
+    char                    *Pathname;
+    UINT32                  OverlapCount = 0;
+
+
+    ACPI_FUNCTION_TRACE (UtCheckAddressRange);
+
+
+    if ((SpaceId != ACPI_ADR_SPACE_SYSTEM_MEMORY) &&
+        (SpaceId != ACPI_ADR_SPACE_SYSTEM_IO))
+    {
+        return_UINT32 (0);
+    }
+
+    RangeInfo = AcpiGbl_AddressRangeList[SpaceId];
+    EndAddress = Address + Length - 1;
+
+    /* Check entire list for all possible conflicts */
+
+    while (RangeInfo)
+    {
+        /*
+         * Check if the requested address/length overlaps this
+         * address range. There are four cases to consider:
+         *
+         * 1) Input address/length is contained completely in the
+         *    address range
+         * 2) Input address/length overlaps range at the range start
+         * 3) Input address/length overlaps range at the range end
+         * 4) Input address/length completely encompasses the range
+         */
+        if ((Address <= RangeInfo->EndAddress) &&
+            (EndAddress >= RangeInfo->StartAddress))
+        {
+            /* Found an address range overlap */
+
+            OverlapCount++;
+            if (Warn)   /* Optional warning message */
+            {
+                Pathname = AcpiNsGetNormalizedPathname (RangeInfo->RegionNode, TRUE);
+
+                ACPI_WARNING ((AE_INFO,
+                    "%s range 0x%8.8X%8.8X-0x%8.8X%8.8X conflicts with OpRegion 0x%8.8X%8.8X-0x%8.8X%8.8X (%s)",
+                    AcpiUtGetRegionName (SpaceId),
+                    ACPI_FORMAT_UINT64 (Address),
+                    ACPI_FORMAT_UINT64 (EndAddress),
+                    ACPI_FORMAT_UINT64 (RangeInfo->StartAddress),
+                    ACPI_FORMAT_UINT64 (RangeInfo->EndAddress),
+                    Pathname));
+                ACPI_FREE (Pathname);
+            }
+        }
+
+        RangeInfo = RangeInfo->Next;
+    }
+
+    return_UINT32 (OverlapCount);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiUtDeleteAddressLists
+ *
+ * PARAMETERS:  None
+ *
+ * RETURN:      None
+ *
+ * DESCRIPTION: Delete all global address range lists (called during
+ *              subsystem shutdown).
+ *
+ ******************************************************************************/
+
+void
+AcpiUtDeleteAddressLists (
+    void)
+{
+    ACPI_ADDRESS_RANGE      *Next;
+    ACPI_ADDRESS_RANGE      *RangeInfo;
+    int                     i;
+
+
+    /* Delete all elements in all address range lists */
+
+    for (i = 0; i < ACPI_ADDRESS_RANGE_MAX; i++)
+    {
+        Next = AcpiGbl_AddressRangeList[i];
+
+        while (Next)
+        {
+            RangeInfo = Next;
+            Next = RangeInfo->Next;
+            ACPI_FREE (RangeInfo);
+        }
+
+        AcpiGbl_AddressRangeList[i] = NULL;
+    }
+}

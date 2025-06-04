@@ -59,7 +59,7 @@ CFLAGS.vbe.c+= -I${SRCTOP}/sys/teken -I${SRCTOP}/contrib/pnglite
 CFLAGS.textvidc.c+= -DTERM_EMU
 
 CFLAGS+=	-I${LDRSRC} -I${BOOTSRC}/i386/common \
-		-I${SYSDIR}/contrib/dev/acpica/include
+		-I${EFISRC}/contrib/dev/acpica/include
 
 # Handle FreeBSD specific %b and %D printf format specifiers
 CFLAGS+= ${FORMAT_EXTENSIONS}

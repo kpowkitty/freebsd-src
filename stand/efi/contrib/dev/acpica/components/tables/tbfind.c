@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Name: acfreebsd.h - OS specific defines, etc.
+ * Module Name: tbfind   - find table
  *
  *****************************************************************************/
 
@@ -149,80 +149,120 @@
  *
  *****************************************************************************/
 
-#ifndef __ACFREEBSD_H__
-#define __ACFREEBSD_H__
+#include <acpi.h>
+#include <accommon.h>
+#include <actables.h>
+
+#define _COMPONENT          ACPI_TABLES
+        ACPI_MODULE_NAME    ("tbfind")
 
 
-#include <sys/types.h>
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiTbFindTable
+ *
+ * PARAMETERS:  Signature           - String with ACPI table signature
+ *              OemId               - String with the table OEM ID
+ *              OemTableId          - String with the OEM Table ID
+ *              TableIndex          - Where the table index is returned
+ *
+ * RETURN:      Status and table index
+ *
+ * DESCRIPTION: Find an ACPI table (in the RSDT/XSDT) that matches the
+ *              Signature, OEM ID and OEM Table ID. Returns an index that can
+ *              be used to get the table header or entire table.
+ *
+ ******************************************************************************/
 
-#ifdef __LP64__
-#define ACPI_MACHINE_WIDTH      64
-#else
-#define ACPI_MACHINE_WIDTH      32
-#endif
+ACPI_STATUS
+AcpiTbFindTable (
+    char                    *Signature,
+    char                    *OemId,
+    char                    *OemTableId,
+    UINT32                  *TableIndex)
+{
+    ACPI_STATUS             Status = AE_OK;
+    ACPI_TABLE_HEADER       Header;
+    UINT32                  i;
 
-#define COMPILER_DEPENDENT_INT64        int64_t
-#define COMPILER_DEPENDENT_UINT64       uint64_t
 
-#define ACPI_UINTPTR_T      uintptr_t
+    ACPI_FUNCTION_TRACE (TbFindTable);
 
-#define ACPI_TO_INTEGER(p)  ((uintptr_t)(p))
-#define ACPI_OFFSET(d, f)   __offsetof(d, f)
 
-#define ACPI_USE_DO_WHILE_0
-#define ACPI_USE_LOCAL_CACHE
-#define ACPI_USE_NATIVE_DIVIDE
-#define ACPI_USE_NATIVE_MATH64
+    /* Validate the input table signature */
 
-#ifdef _KERNEL
+    if (!AcpiUtValidNameseg (Signature))
+    {
+        return_ACPI_STATUS (AE_BAD_SIGNATURE);
+    }
 
-#include <sys/ctype.h>
-#include <sys/param.h>
-#include <sys/systm.h>
-#include <sys/libkern.h>
-#include <machine/acpica_machdep.h>
-#include <machine/stdarg.h>
+    /* Don't allow the OEM strings to be too long */
 
-#include "opt_acpi.h"
+    if ((strlen (OemId) > ACPI_OEM_ID_SIZE) ||
+        (strlen (OemTableId) > ACPI_OEM_TABLE_ID_SIZE))
+    {
+        return_ACPI_STATUS (AE_AML_STRING_LIMIT);
+    }
 
-#define ACPI_MUTEX_TYPE     ACPI_OSL_MUTEX
+    /* Normalize the input strings */
 
-#ifdef ACPI_DEBUG
-#define ACPI_DEBUG_OUTPUT   /* for backward compatibility */
-#define ACPI_DISASSEMBLER
-#endif
+    memset (&Header, 0, sizeof (ACPI_TABLE_HEADER));
+    ACPI_COPY_NAMESEG (Header.Signature, Signature);
+    memcpy (Header.OemId, OemId, ACPI_OEM_ID_SIZE);
+    memcpy (Header.OemTableId, OemTableId, ACPI_OEM_TABLE_ID_SIZE);
 
-#ifdef ACPI_DEBUG_OUTPUT
-#include "opt_ddb.h"
-#ifdef DDB
-#define ACPI_DEBUGGER
-#endif /* DDB */
-#endif /* ACPI_DEBUG_OUTPUT */
+    /* Search for the table */
 
-#ifdef DEBUGGER_THREADING
-#undef DEBUGGER_THREADING
-#endif /* DEBUGGER_THREADING */
+    (void) AcpiUtAcquireMutex (ACPI_MTX_TABLES);
+    for (i = 0; i < AcpiGbl_RootTableList.CurrentTableCount; ++i)
+    {
+        if (memcmp (&(AcpiGbl_RootTableList.Tables[i].Signature),
+            Header.Signature, ACPI_NAMESEG_SIZE))
+        {
+            /* Not the requested table */
 
-#define DEBUGGER_THREADING  0   /* integrated with DDB */
+            continue;
+        }
 
-#ifdef INVARIANTS
-#define ACPI_MUTEX_DEBUG
-#endif
+        /* Table with matching signature has been found */
 
-#else /* _KERNEL */
+        if (!AcpiGbl_RootTableList.Tables[i].Pointer)
+        {
+            /* Table is not currently mapped, map it */
 
-#if __STDC_HOSTED__
-#include <ctype.h>
-#include <unistd.h>
-#endif
+            Status = AcpiTbValidateTable (&AcpiGbl_RootTableList.Tables[i]);
+            if (ACPI_FAILURE (Status))
+            {
+                goto UnlockAndExit;
+            }
 
-#define ACPI_CAST_PTHREAD_T(pthread)    ((ACPI_THREAD_ID) ACPI_TO_INTEGER (pthread))
+            if (!AcpiGbl_RootTableList.Tables[i].Pointer)
+            {
+                continue;
+            }
+        }
 
-#define ACPI_USE_STANDARD_HEADERS
+        /* Check for table match on all IDs */
 
-#define ACPI_FLUSH_CPU_CACHE()
-#define __cdecl
+        if (!memcmp (AcpiGbl_RootTableList.Tables[i].Pointer->Signature,
+                Header.Signature, ACPI_NAMESEG_SIZE) &&
+            (!OemId[0] ||
+             !memcmp (AcpiGbl_RootTableList.Tables[i].Pointer->OemId,
+                 Header.OemId, ACPI_OEM_ID_SIZE)) &&
+            (!OemTableId[0] ||
+             !memcmp (AcpiGbl_RootTableList.Tables[i].Pointer->OemTableId,
+                 Header.OemTableId, ACPI_OEM_TABLE_ID_SIZE)))
+        {
+            *TableIndex = i;
 
-#endif /* _KERNEL */
+            ACPI_DEBUG_PRINT ((ACPI_DB_TABLES, "Found table [%4.4s]\n",
+                Header.Signature));
+            goto UnlockAndExit;
+        }
+    }
+    Status = AE_NOT_FOUND;
 
-#endif /* __ACFREEBSD_H__ */
+UnlockAndExit:
+    (void) AcpiUtReleaseMutex (ACPI_MTX_TABLES);
+    return_ACPI_STATUS (Status);
+}

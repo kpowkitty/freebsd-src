@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Name: acfreebsd.h - OS specific defines, etc.
+ * Name: actables.h - ACPI table management
  *
  *****************************************************************************/
 
@@ -149,80 +149,235 @@
  *
  *****************************************************************************/
 
-#ifndef __ACFREEBSD_H__
-#define __ACFREEBSD_H__
+#ifndef __ACTABLES_H__
+#define __ACTABLES_H__
 
 
-#include <sys/types.h>
+ACPI_STATUS
+AcpiAllocateRootTable (
+    UINT32                  InitialTableCount);
 
-#ifdef __LP64__
-#define ACPI_MACHINE_WIDTH      64
-#else
-#define ACPI_MACHINE_WIDTH      32
-#endif
+/*
+ * tbxfroot - Root pointer utilities
+ */
+UINT32
+AcpiTbGetRsdpLength (
+    ACPI_TABLE_RSDP         *Rsdp);
 
-#define COMPILER_DEPENDENT_INT64        int64_t
-#define COMPILER_DEPENDENT_UINT64       uint64_t
+ACPI_STATUS
+AcpiTbValidateRsdp (
+    ACPI_TABLE_RSDP         *Rsdp);
 
-#define ACPI_UINTPTR_T      uintptr_t
+UINT8 *
+AcpiTbScanMemoryForRsdp (
+    UINT8                   *StartAddress,
+    UINT32                  Length);
 
-#define ACPI_TO_INTEGER(p)  ((uintptr_t)(p))
-#define ACPI_OFFSET(d, f)   __offsetof(d, f)
 
-#define ACPI_USE_DO_WHILE_0
-#define ACPI_USE_LOCAL_CACHE
-#define ACPI_USE_NATIVE_DIVIDE
-#define ACPI_USE_NATIVE_MATH64
+/*
+ * tbdata - table data structure management
+ */
+ACPI_STATUS
+AcpiTbGetNextTableDescriptor (
+    UINT32                  *TableIndex,
+    ACPI_TABLE_DESC         **TableDesc);
 
-#ifdef _KERNEL
+void
+AcpiTbInitTableDescriptor (
+    ACPI_TABLE_DESC         *TableDesc,
+    ACPI_PHYSICAL_ADDRESS   Address,
+    UINT8                   Flags,
+    ACPI_TABLE_HEADER       *Table);
 
-#include <sys/ctype.h>
-#include <sys/param.h>
-#include <sys/systm.h>
-#include <sys/libkern.h>
-#include <machine/acpica_machdep.h>
-#include <machine/stdarg.h>
+ACPI_STATUS
+AcpiTbAcquireTempTable (
+    ACPI_TABLE_DESC         *TableDesc,
+    ACPI_PHYSICAL_ADDRESS   Address,
+    UINT8                   Flags,
+    ACPI_TABLE_HEADER       *Table);
 
-#include "opt_acpi.h"
+void
+AcpiTbReleaseTempTable (
+    ACPI_TABLE_DESC         *TableDesc);
 
-#define ACPI_MUTEX_TYPE     ACPI_OSL_MUTEX
+ACPI_STATUS
+AcpiTbValidateTempTable (
+    ACPI_TABLE_DESC         *TableDesc);
 
-#ifdef ACPI_DEBUG
-#define ACPI_DEBUG_OUTPUT   /* for backward compatibility */
-#define ACPI_DISASSEMBLER
-#endif
+ACPI_STATUS
+AcpiTbVerifyTempTable (
+    ACPI_TABLE_DESC         *TableDesc,
+    char                    *Signature,
+    UINT32                  *TableIndex);
 
-#ifdef ACPI_DEBUG_OUTPUT
-#include "opt_ddb.h"
-#ifdef DDB
-#define ACPI_DEBUGGER
-#endif /* DDB */
-#endif /* ACPI_DEBUG_OUTPUT */
+BOOLEAN
+AcpiTbIsTableLoaded (
+    UINT32                  TableIndex);
 
-#ifdef DEBUGGER_THREADING
-#undef DEBUGGER_THREADING
-#endif /* DEBUGGER_THREADING */
+void
+AcpiTbSetTableLoadedFlag (
+    UINT32                  TableIndex,
+    BOOLEAN                 IsLoaded);
 
-#define DEBUGGER_THREADING  0   /* integrated with DDB */
 
-#ifdef INVARIANTS
-#define ACPI_MUTEX_DEBUG
-#endif
+/*
+ * tbfadt - FADT parse/convert/validate
+ */
+void
+AcpiTbParseFadt (
+    void);
 
-#else /* _KERNEL */
+void
+AcpiTbCreateLocalFadt (
+    ACPI_TABLE_HEADER       *Table,
+    UINT32                  Length);
 
-#if __STDC_HOSTED__
-#include <ctype.h>
-#include <unistd.h>
-#endif
 
-#define ACPI_CAST_PTHREAD_T(pthread)    ((ACPI_THREAD_ID) ACPI_TO_INTEGER (pthread))
+/*
+ * tbfind - find ACPI table
+ */
+ACPI_STATUS
+AcpiTbFindTable (
+    char                    *Signature,
+    char                    *OemId,
+    char                    *OemTableId,
+    UINT32                  *TableIndex);
 
-#define ACPI_USE_STANDARD_HEADERS
 
-#define ACPI_FLUSH_CPU_CACHE()
-#define __cdecl
+/*
+ * tbinstal - Table removal and deletion
+ */
+ACPI_STATUS
+AcpiTbResizeRootTableList (
+    void);
 
-#endif /* _KERNEL */
+ACPI_STATUS
+AcpiTbValidateTable (
+    ACPI_TABLE_DESC         *TableDesc);
 
-#endif /* __ACFREEBSD_H__ */
+void
+AcpiTbInvalidateTable (
+    ACPI_TABLE_DESC         *TableDesc);
+
+void
+AcpiTbOverrideTable (
+    ACPI_TABLE_DESC         *OldTableDesc);
+
+ACPI_STATUS
+AcpiTbAcquireTable (
+    ACPI_TABLE_DESC         *TableDesc,
+    ACPI_TABLE_HEADER       **TablePtr,
+    UINT32                  *TableLength,
+    UINT8                   *TableFlags);
+
+void
+AcpiTbReleaseTable (
+    ACPI_TABLE_HEADER       *Table,
+    UINT32                  TableLength,
+    UINT8                   TableFlags);
+
+ACPI_STATUS
+AcpiTbInstallStandardTable (
+    ACPI_PHYSICAL_ADDRESS   Address,
+    UINT8                   Flags,
+    ACPI_TABLE_HEADER       *Table,
+    BOOLEAN                 Reload,
+    BOOLEAN                 Override,
+    UINT32                  *TableIndex);
+
+void
+AcpiTbUninstallTable (
+    ACPI_TABLE_DESC        *TableDesc);
+
+ACPI_STATUS
+AcpiTbLoadTable (
+    UINT32                  TableIndex,
+    ACPI_NAMESPACE_NODE     *ParentNode);
+
+ACPI_STATUS
+AcpiTbInstallAndLoadTable (
+    ACPI_PHYSICAL_ADDRESS   Address,
+    UINT8                   Flags,
+    ACPI_TABLE_HEADER       *Table,
+    BOOLEAN                 Override,
+    UINT32                  *TableIndex);
+
+ACPI_STATUS
+AcpiTbUnloadTable (
+    UINT32                  TableIndex);
+
+void
+AcpiTbNotifyTable (
+    UINT32                          Event,
+    void                            *Table);
+
+void
+AcpiTbTerminate (
+    void);
+
+ACPI_STATUS
+AcpiTbDeleteNamespaceByOwner (
+    UINT32                  TableIndex);
+
+ACPI_STATUS
+AcpiTbAllocateOwnerId (
+    UINT32                  TableIndex);
+
+ACPI_STATUS
+AcpiTbReleaseOwnerId (
+    UINT32                  TableIndex);
+
+ACPI_STATUS
+AcpiTbGetOwnerId (
+    UINT32                  TableIndex,
+    ACPI_OWNER_ID           *OwnerId);
+
+
+/*
+ * tbutils - table manager utilities
+ */
+ACPI_STATUS
+AcpiTbInitializeFacs (
+    void);
+
+void
+AcpiTbPrintTableHeader(
+    ACPI_PHYSICAL_ADDRESS   Address,
+    ACPI_TABLE_HEADER       *Header);
+
+void
+AcpiTbCheckDsdtHeader (
+    void);
+
+ACPI_TABLE_HEADER *
+AcpiTbCopyDsdt (
+    UINT32                  TableIndex);
+
+void
+AcpiTbInstallTableWithOverride (
+    ACPI_TABLE_DESC         *NewTableDesc,
+    BOOLEAN                 Override,
+    UINT32                  *TableIndex);
+
+ACPI_STATUS
+AcpiTbParseRootTable (
+    ACPI_PHYSICAL_ADDRESS   RsdpAddress);
+
+ACPI_STATUS
+AcpiTbGetTable (
+    ACPI_TABLE_DESC        *TableDesc,
+    ACPI_TABLE_HEADER      **OutTable);
+
+void
+AcpiTbPutTable (
+    ACPI_TABLE_DESC        *TableDesc);
+
+
+/*
+ * tbxfload
+ */
+ACPI_STATUS
+AcpiTbLoadNamespace (
+    void);
+
+#endif /* __ACTABLES_H__ */

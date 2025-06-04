@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Name: acfreebsd.h - OS specific defines, etc.
+ * Module Name: tbprint - Table output utilities
  *
  *****************************************************************************/
 
@@ -149,80 +149,148 @@
  *
  *****************************************************************************/
 
-#ifndef __ACFREEBSD_H__
-#define __ACFREEBSD_H__
+#include <acpi.h>
+#include <accommon.h>
+#include <actables.h>
+#include <acdisasm.h>
+#include <acutils.h>
+
+#define _COMPONENT          ACPI_TABLES
+        ACPI_MODULE_NAME    ("tbprint")
 
 
-#include <sys/types.h>
+/* Local prototypes */
 
-#ifdef __LP64__
-#define ACPI_MACHINE_WIDTH      64
-#else
-#define ACPI_MACHINE_WIDTH      32
-#endif
+static void
+AcpiTbFixString (
+    char                    *String,
+    ACPI_SIZE               Length);
 
-#define COMPILER_DEPENDENT_INT64        int64_t
-#define COMPILER_DEPENDENT_UINT64       uint64_t
+static void
+AcpiTbCleanupTableHeader (
+    ACPI_TABLE_HEADER       *OutHeader,
+    ACPI_TABLE_HEADER       *Header);
 
-#define ACPI_UINTPTR_T      uintptr_t
 
-#define ACPI_TO_INTEGER(p)  ((uintptr_t)(p))
-#define ACPI_OFFSET(d, f)   __offsetof(d, f)
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiTbFixString
+ *
+ * PARAMETERS:  String              - String to be repaired
+ *              Length              - Maximum length
+ *
+ * RETURN:      None
+ *
+ * DESCRIPTION: Replace every non-printable or non-ascii byte in the string
+ *              with a question mark '?'.
+ *
+ ******************************************************************************/
 
-#define ACPI_USE_DO_WHILE_0
-#define ACPI_USE_LOCAL_CACHE
-#define ACPI_USE_NATIVE_DIVIDE
-#define ACPI_USE_NATIVE_MATH64
+static void
+AcpiTbFixString (
+    char                    *String,
+    ACPI_SIZE               Length)
+{
 
-#ifdef _KERNEL
+    while (Length && *String)
+    {
+        if (!isprint ((int) (UINT8) *String))
+        {
+            *String = '?';
+        }
 
-#include <sys/ctype.h>
-#include <sys/param.h>
-#include <sys/systm.h>
-#include <sys/libkern.h>
-#include <machine/acpica_machdep.h>
-#include <machine/stdarg.h>
+        String++;
+        Length--;
+    }
+}
 
-#include "opt_acpi.h"
 
-#define ACPI_MUTEX_TYPE     ACPI_OSL_MUTEX
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiTbCleanupTableHeader
+ *
+ * PARAMETERS:  OutHeader           - Where the cleaned header is returned
+ *              Header              - Input ACPI table header
+ *
+ * RETURN:      Returns the cleaned header in OutHeader
+ *
+ * DESCRIPTION: Copy the table header and ensure that all "string" fields in
+ *              the header consist of printable characters.
+ *
+ ******************************************************************************/
 
-#ifdef ACPI_DEBUG
-#define ACPI_DEBUG_OUTPUT   /* for backward compatibility */
-#define ACPI_DISASSEMBLER
-#endif
+static void
+AcpiTbCleanupTableHeader (
+    ACPI_TABLE_HEADER       *OutHeader,
+    ACPI_TABLE_HEADER       *Header)
+{
 
-#ifdef ACPI_DEBUG_OUTPUT
-#include "opt_ddb.h"
-#ifdef DDB
-#define ACPI_DEBUGGER
-#endif /* DDB */
-#endif /* ACPI_DEBUG_OUTPUT */
+    memcpy (OutHeader, Header, sizeof (ACPI_TABLE_HEADER));
 
-#ifdef DEBUGGER_THREADING
-#undef DEBUGGER_THREADING
-#endif /* DEBUGGER_THREADING */
+    AcpiTbFixString (OutHeader->Signature, ACPI_NAMESEG_SIZE);
+    AcpiTbFixString (OutHeader->OemId, ACPI_OEM_ID_SIZE);
+    AcpiTbFixString (OutHeader->OemTableId, ACPI_OEM_TABLE_ID_SIZE);
+    AcpiTbFixString (OutHeader->AslCompilerId, ACPI_NAMESEG_SIZE);
+}
 
-#define DEBUGGER_THREADING  0   /* integrated with DDB */
 
-#ifdef INVARIANTS
-#define ACPI_MUTEX_DEBUG
-#endif
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiTbPrintTableHeader
+ *
+ * PARAMETERS:  Address             - Table physical address
+ *              Header              - Table header
+ *
+ * RETURN:      None
+ *
+ * DESCRIPTION: Print an ACPI table header. Special cases for FACS and RSDP.
+ *
+ ******************************************************************************/
 
-#else /* _KERNEL */
+void
+AcpiTbPrintTableHeader (
+    ACPI_PHYSICAL_ADDRESS   Address,
+    ACPI_TABLE_HEADER       *Header)
+{
+    ACPI_TABLE_HEADER       LocalHeader;
 
-#if __STDC_HOSTED__
-#include <ctype.h>
-#include <unistd.h>
-#endif
 
-#define ACPI_CAST_PTHREAD_T(pthread)    ((ACPI_THREAD_ID) ACPI_TO_INTEGER (pthread))
+    if (ACPI_COMPARE_NAMESEG (Header->Signature, ACPI_SIG_FACS))
+    {
+        /* FACS only has signature and length fields */
 
-#define ACPI_USE_STANDARD_HEADERS
+        ACPI_INFO (("%-4.4s 0x%8.8X%8.8X %06X",
+            Header->Signature, ACPI_FORMAT_UINT64 (Address),
+            Header->Length));
+    }
+    else if (ACPI_VALIDATE_RSDP_SIG (ACPI_CAST_PTR (ACPI_TABLE_RSDP,
+        Header)->Signature))
+    {
+        /* RSDP has no common fields */
 
-#define ACPI_FLUSH_CPU_CACHE()
-#define __cdecl
+        memcpy (LocalHeader.OemId, ACPI_CAST_PTR (ACPI_TABLE_RSDP,
+            Header)->OemId, ACPI_OEM_ID_SIZE);
+        AcpiTbFixString (LocalHeader.OemId, ACPI_OEM_ID_SIZE);
 
-#endif /* _KERNEL */
+        ACPI_INFO (("RSDP 0x%8.8X%8.8X %06X (v%.2d %-6.6s)",
+            ACPI_FORMAT_UINT64 (Address),
+            (ACPI_CAST_PTR (ACPI_TABLE_RSDP, Header)->Revision > 0) ?
+                ACPI_CAST_PTR (ACPI_TABLE_RSDP, Header)->Length : 20,
+            ACPI_CAST_PTR (ACPI_TABLE_RSDP, Header)->Revision,
+            LocalHeader.OemId));
+    }
+    else
+    {
+        /* Standard ACPI table with full common header */
 
-#endif /* __ACFREEBSD_H__ */
+        AcpiTbCleanupTableHeader (&LocalHeader, Header);
+
+        ACPI_INFO ((
+            "%-4.4s 0x%8.8X%8.8X"
+            " %06X (v%.2d %-6.6s %-8.8s %08X %-4.4s %08X)",
+            LocalHeader.Signature, ACPI_FORMAT_UINT64 (Address),
+            LocalHeader.Length, LocalHeader.Revision, LocalHeader.OemId,
+            LocalHeader.OemTableId, LocalHeader.OemRevision,
+            LocalHeader.AslCompilerId, LocalHeader.AslCompilerRevision));
+    }
+}

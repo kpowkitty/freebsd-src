@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Name: acfreebsd.h - OS specific defines, etc.
+ * Module Name: utascii - Utility ascii functions
  *
  *****************************************************************************/
 
@@ -149,80 +149,121 @@
  *
  *****************************************************************************/
 
-#ifndef __ACFREEBSD_H__
-#define __ACFREEBSD_H__
+#include <acpi.h>
+#include <accommon.h>
 
 
-#include <sys/types.h>
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiUtValidNameseg
+ *
+ * PARAMETERS:  Name            - The name or table signature to be examined.
+ *                                Four characters, does not have to be a
+ *                                NULL terminated string.
+ *
+ * RETURN:      TRUE if signature is has 4 valid ACPI characters
+ *
+ * DESCRIPTION: Validate an ACPI table signature.
+ *
+ ******************************************************************************/
 
-#ifdef __LP64__
-#define ACPI_MACHINE_WIDTH      64
-#else
-#define ACPI_MACHINE_WIDTH      32
-#endif
+BOOLEAN
+AcpiUtValidNameseg (
+    char                    *Name)
+{
+    UINT32                  i;
 
-#define COMPILER_DEPENDENT_INT64        int64_t
-#define COMPILER_DEPENDENT_UINT64       uint64_t
 
-#define ACPI_UINTPTR_T      uintptr_t
+    /* Validate each character in the signature */
 
-#define ACPI_TO_INTEGER(p)  ((uintptr_t)(p))
-#define ACPI_OFFSET(d, f)   __offsetof(d, f)
+    for (i = 0; i < ACPI_NAMESEG_SIZE; i++)
+    {
+        if (!AcpiUtValidNameChar (Name[i], i))
+        {
+            return (FALSE);
+        }
+    }
 
-#define ACPI_USE_DO_WHILE_0
-#define ACPI_USE_LOCAL_CACHE
-#define ACPI_USE_NATIVE_DIVIDE
-#define ACPI_USE_NATIVE_MATH64
+    return (TRUE);
+}
 
-#ifdef _KERNEL
 
-#include <sys/ctype.h>
-#include <sys/param.h>
-#include <sys/systm.h>
-#include <sys/libkern.h>
-#include <machine/acpica_machdep.h>
-#include <machine/stdarg.h>
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiUtValidNameChar
+ *
+ * PARAMETERS:  Char            - The character to be examined
+ *              Position        - Byte position (0-3)
+ *
+ * RETURN:      TRUE if the character is valid, FALSE otherwise
+ *
+ * DESCRIPTION: Check for a valid ACPI character. Must be one of:
+ *              1) Upper case alpha
+ *              2) numeric
+ *              3) underscore
+ *
+ *              We allow a '!' as the last character because of the ASF! table
+ *
+ ******************************************************************************/
 
-#include "opt_acpi.h"
+BOOLEAN
+AcpiUtValidNameChar (
+    char                    Character,
+    UINT32                  Position)
+{
 
-#define ACPI_MUTEX_TYPE     ACPI_OSL_MUTEX
+    if (!((Character >= 'A' && Character <= 'Z') ||
+          (Character >= '0' && Character <= '9') ||
+          (Character == '_')))
+    {
+        /* Allow a '!' in the last position */
 
-#ifdef ACPI_DEBUG
-#define ACPI_DEBUG_OUTPUT   /* for backward compatibility */
-#define ACPI_DISASSEMBLER
-#endif
+        if (Character == '!' && Position == 3)
+        {
+            return (TRUE);
+        }
 
-#ifdef ACPI_DEBUG_OUTPUT
-#include "opt_ddb.h"
-#ifdef DDB
-#define ACPI_DEBUGGER
-#endif /* DDB */
-#endif /* ACPI_DEBUG_OUTPUT */
+        return (FALSE);
+    }
 
-#ifdef DEBUGGER_THREADING
-#undef DEBUGGER_THREADING
-#endif /* DEBUGGER_THREADING */
+    return (TRUE);
+}
 
-#define DEBUGGER_THREADING  0   /* integrated with DDB */
 
-#ifdef INVARIANTS
-#define ACPI_MUTEX_DEBUG
-#endif
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiUtCheckAndRepairAscii
+ *
+ * PARAMETERS:  Name                - Ascii string
+ *              Count               - Number of characters to check
+ *
+ * RETURN:      None
+ *
+ * DESCRIPTION: Ensure that the requested number of characters are printable
+ *              Ascii characters. Sets non-printable and null chars to <space>.
+ *
+ ******************************************************************************/
 
-#else /* _KERNEL */
+void
+AcpiUtCheckAndRepairAscii (
+    UINT8                   *Name,
+    char                    *RepairedName,
+    UINT32                  Count)
+{
+    UINT32                  i;
 
-#if __STDC_HOSTED__
-#include <ctype.h>
-#include <unistd.h>
-#endif
 
-#define ACPI_CAST_PTHREAD_T(pthread)    ((ACPI_THREAD_ID) ACPI_TO_INTEGER (pthread))
+    for (i = 0; i < Count; i++)
+    {
+        RepairedName[i] = (char) Name[i];
 
-#define ACPI_USE_STANDARD_HEADERS
-
-#define ACPI_FLUSH_CPU_CACHE()
-#define __cdecl
-
-#endif /* _KERNEL */
-
-#endif /* __ACFREEBSD_H__ */
+        if (!Name[i])
+        {
+            return;
+        }
+        if (!isprint (Name[i]))
+        {
+            RepairedName[i] = ' ';
+        }
+    }
+}

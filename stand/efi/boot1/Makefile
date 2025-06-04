@@ -46,7 +46,7 @@ CFLAGS+=	-DEFI_ZFS_BOOT
 
 CFLAGS+=	-I${EFIINC}
 CFLAGS+=	-I${EFIINCMD}
-CFLAGS+=	-I${SYSDIR}/contrib/dev/acpica/include
+CFLAGS+=	-I${EFISRC}/contrib/dev/acpica/include
 CFLAGS+=	-DEFI_UFS_BOOT
 .ifdef(EFI_DEBUG)
 CFLAGS+=	-DEFI_DEBUG

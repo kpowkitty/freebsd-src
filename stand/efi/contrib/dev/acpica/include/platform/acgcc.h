@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Name: acfreebsd.h - OS specific defines, etc.
+ * Name: acgcc.h - GCC specific defines, etc.
  *
  *****************************************************************************/
 
@@ -149,80 +149,89 @@
  *
  *****************************************************************************/
 
-#ifndef __ACFREEBSD_H__
-#define __ACFREEBSD_H__
+#ifndef __ACGCC_H__
+#define __ACGCC_H__
 
-
-#include <sys/types.h>
-
-#ifdef __LP64__
-#define ACPI_MACHINE_WIDTH      64
+/*
+ * Use compiler specific <stdarg.h> is a good practice for even when
+ * -nostdinc is specified (i.e., ACPI_USE_STANDARD_HEADERS undefined.
+ */
+#ifndef va_arg
+#ifdef ACPI_USE_BUILTIN_STDARG
+typedef __builtin_va_list       va_list;
+#define va_start(v, l)          __builtin_va_start(v, l)
+#define va_end(v)               __builtin_va_end(v)
+#define va_arg(v, l)            __builtin_va_arg(v, l)
+#define va_copy(d, s)           __builtin_va_copy(d, s)
 #else
-#define ACPI_MACHINE_WIDTH      32
+#if !defined(__FreeBSD__) || !defined(_KERNEL)
+#include <stdarg.h>
+#endif
+#endif
 #endif
 
-#define COMPILER_DEPENDENT_INT64        int64_t
-#define COMPILER_DEPENDENT_UINT64       uint64_t
+#define ACPI_INLINE             __inline__
 
-#define ACPI_UINTPTR_T      uintptr_t
+/* Function name is used for debug output. Non-ANSI, compiler-dependent */
 
-#define ACPI_TO_INTEGER(p)  ((uintptr_t)(p))
-#define ACPI_OFFSET(d, f)   __offsetof(d, f)
+#define ACPI_GET_FUNCTION_NAME          __func__
 
-#define ACPI_USE_DO_WHILE_0
-#define ACPI_USE_LOCAL_CACHE
-#define ACPI_USE_NATIVE_DIVIDE
+/*
+ * This macro is used to tag functions as "printf-like" because
+ * some compilers (like GCC) can catch printf format string problems.
+ */
+#define ACPI_PRINTF_LIKE(c) __attribute__ ((__format__ (__printf__, c, c+1)))
+
+/*
+ * Some compilers complain about unused variables. Sometimes we don't want to
+ * use all the variables (for example, _AcpiModuleName). This allows us
+ * to tell the compiler warning in a per-variable manner that a variable
+ * is unused.
+ */
+#define ACPI_UNUSED_VAR __attribute__ ((unused))
+
+/* GCC supports __VA_ARGS__ in macros */
+
+#define COMPILER_VA_MACRO               1
+
+/* GCC supports native multiply/shift on 32-bit platforms */
+
 #define ACPI_USE_NATIVE_MATH64
 
-#ifdef _KERNEL
+/* GCC did not support __has_attribute until 5.1. */
 
-#include <sys/ctype.h>
-#include <sys/param.h>
-#include <sys/systm.h>
-#include <sys/libkern.h>
-#include <machine/acpica_machdep.h>
-#include <machine/stdarg.h>
-
-#include "opt_acpi.h"
-
-#define ACPI_MUTEX_TYPE     ACPI_OSL_MUTEX
-
-#ifdef ACPI_DEBUG
-#define ACPI_DEBUG_OUTPUT   /* for backward compatibility */
-#define ACPI_DISASSEMBLER
+#ifndef __has_attribute
+#define __has_attribute(x) 0
 #endif
 
-#ifdef ACPI_DEBUG_OUTPUT
-#include "opt_ddb.h"
-#ifdef DDB
-#define ACPI_DEBUGGER
-#endif /* DDB */
-#endif /* ACPI_DEBUG_OUTPUT */
+/*
+ * Explicitly mark intentional explicit fallthrough to silence
+ * -Wimplicit-fallthrough in GCC 7.1+.
+ */
 
-#ifdef DEBUGGER_THREADING
-#undef DEBUGGER_THREADING
-#endif /* DEBUGGER_THREADING */
-
-#define DEBUGGER_THREADING  0   /* integrated with DDB */
-
-#ifdef INVARIANTS
-#define ACPI_MUTEX_DEBUG
+#if __has_attribute(__fallthrough__)
+#define ACPI_FALLTHROUGH __attribute__((__fallthrough__))
 #endif
 
-#else /* _KERNEL */
-
-#if __STDC_HOSTED__
-#include <ctype.h>
-#include <unistd.h>
+/*
+ * Flexible array members are not allowed to be part of a union under
+ * C99, but this is not for any technical reason. Work around the
+ * limitation.
+ */
+#ifndef __cplusplus
+#define ACPI_FLEX_ARRAY(TYPE, NAME)             \
+        struct {                                \
+                struct { } __Empty_ ## NAME;    \
+                TYPE NAME[];                    \
+        }
 #endif
 
-#define ACPI_CAST_PTHREAD_T(pthread)    ((ACPI_THREAD_ID) ACPI_TO_INTEGER (pthread))
+/*
+ * Explicitly mark strings that lack a terminating NUL character so
+ * that ACPICA can be built with -Wunterminated-string-initialization.
+ */
+#if __has_attribute(__nonstring__)
+#define ACPI_NONSTRING __attribute__((__nonstring__))
+#endif
 
-#define ACPI_USE_STANDARD_HEADERS
-
-#define ACPI_FLUSH_CPU_CACHE()
-#define __cdecl
-
-#endif /* _KERNEL */
-
-#endif /* __ACFREEBSD_H__ */
+#endif /* __ACGCC_H__ */

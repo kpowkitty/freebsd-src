@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Name: acfreebsd.h - OS specific defines, etc.
+ * Name: acnames.h - Global names and strings
  *
  *****************************************************************************/
 
@@ -149,80 +149,58 @@
  *
  *****************************************************************************/
 
-#ifndef __ACFREEBSD_H__
-#define __ACFREEBSD_H__
+#ifndef __ACNAMES_H__
+#define __ACNAMES_H__
 
+/* Method names - these methods can appear anywhere in the namespace */
 
-#include <sys/types.h>
+#define METHOD_NAME__ADR        "_ADR"
+#define METHOD_NAME__AEI        "_AEI"
+#define METHOD_NAME__BBN        "_BBN"
+#define METHOD_NAME__CBA        "_CBA"
+#define METHOD_NAME__CID        "_CID"
+#define METHOD_NAME__CLS        "_CLS"
+#define METHOD_NAME__CRS        "_CRS"
+#define METHOD_NAME__DDN        "_DDN"
+#define METHOD_NAME__DIS        "_DIS"
+#define METHOD_NAME__DMA        "_DMA"
+#define METHOD_NAME__EVT        "_EVT"
+#define METHOD_NAME__HID        "_HID"
+#define METHOD_NAME__INI        "_INI"
+#define METHOD_NAME__PLD        "_PLD"
+#define METHOD_NAME__DSD        "_DSD"
+#define METHOD_NAME__PRS        "_PRS"
+#define METHOD_NAME__PRT        "_PRT"
+#define METHOD_NAME__PRW        "_PRW"
+#define METHOD_NAME__PS0        "_PS0"
+#define METHOD_NAME__PS1        "_PS1"
+#define METHOD_NAME__PS2        "_PS2"
+#define METHOD_NAME__PS3        "_PS3"
+#define METHOD_NAME__REG        "_REG"
+#define METHOD_NAME__SB_        "_SB_"
+#define METHOD_NAME__SEG        "_SEG"
+#define METHOD_NAME__SRS        "_SRS"
+#define METHOD_NAME__STA        "_STA"
+#define METHOD_NAME__SUB        "_SUB"
+#define METHOD_NAME__UID        "_UID"
 
-#ifdef __LP64__
-#define ACPI_MACHINE_WIDTH      64
-#else
-#define ACPI_MACHINE_WIDTH      32
-#endif
+/* Method names - these methods must appear at the namespace root */
 
-#define COMPILER_DEPENDENT_INT64        int64_t
-#define COMPILER_DEPENDENT_UINT64       uint64_t
+#define METHOD_PATHNAME__PTS    "\\_PTS"
+#define METHOD_PATHNAME__SST    "\\_SI._SST"
+#define METHOD_PATHNAME__WAK    "\\_WAK"
 
-#define ACPI_UINTPTR_T      uintptr_t
+/* Definitions of the predefined namespace names  */
 
-#define ACPI_TO_INTEGER(p)  ((uintptr_t)(p))
-#define ACPI_OFFSET(d, f)   __offsetof(d, f)
+#define ACPI_UNKNOWN_NAME       (UINT32) 0x3F3F3F3F     /* Unknown name is "????" */
+#define ACPI_PREFIX_MIXED       (UINT32) 0x69706341     /* "Acpi" */
+#define ACPI_PREFIX_LOWER       (UINT32) 0x69706361     /* "acpi" */
 
-#define ACPI_USE_DO_WHILE_0
-#define ACPI_USE_LOCAL_CACHE
-#define ACPI_USE_NATIVE_DIVIDE
-#define ACPI_USE_NATIVE_MATH64
+/* Root name stuff */
 
-#ifdef _KERNEL
+#define ACPI_ROOT_NAME          (UINT32) 0x5F5F5F5C     /* Root name is    "\___" */
+#define ACPI_ROOT_PATHNAME      "\\___"
+#define ACPI_NAMESPACE_ROOT     "Namespace Root"
+#define ACPI_NS_ROOT_PATH       "\\"
 
-#include <sys/ctype.h>
-#include <sys/param.h>
-#include <sys/systm.h>
-#include <sys/libkern.h>
-#include <machine/acpica_machdep.h>
-#include <machine/stdarg.h>
-
-#include "opt_acpi.h"
-
-#define ACPI_MUTEX_TYPE     ACPI_OSL_MUTEX
-
-#ifdef ACPI_DEBUG
-#define ACPI_DEBUG_OUTPUT   /* for backward compatibility */
-#define ACPI_DISASSEMBLER
-#endif
-
-#ifdef ACPI_DEBUG_OUTPUT
-#include "opt_ddb.h"
-#ifdef DDB
-#define ACPI_DEBUGGER
-#endif /* DDB */
-#endif /* ACPI_DEBUG_OUTPUT */
-
-#ifdef DEBUGGER_THREADING
-#undef DEBUGGER_THREADING
-#endif /* DEBUGGER_THREADING */
-
-#define DEBUGGER_THREADING  0   /* integrated with DDB */
-
-#ifdef INVARIANTS
-#define ACPI_MUTEX_DEBUG
-#endif
-
-#else /* _KERNEL */
-
-#if __STDC_HOSTED__
-#include <ctype.h>
-#include <unistd.h>
-#endif
-
-#define ACPI_CAST_PTHREAD_T(pthread)    ((ACPI_THREAD_ID) ACPI_TO_INTEGER (pthread))
-
-#define ACPI_USE_STANDARD_HEADERS
-
-#define ACPI_FLUSH_CPU_CACHE()
-#define __cdecl
-
-#endif /* _KERNEL */
-
-#endif /* __ACFREEBSD_H__ */
+#endif  /* __ACNAMES_H__  */
