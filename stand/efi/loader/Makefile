@@ -30,6 +30,34 @@ SRCS=	autoload.c \
 	gfx_fb.c \
 	8x16.c
 
+# ACPICA Loader Initialization
+# XXX Try to trim amount src'd if possible...
+SRCS+=	acpi.c \
+	OsdMemory.c \
+	nsaccess.c \
+	nsalloc.c \
+	nsobject.c \
+	tbfadt.c \
+	tbinstal.c \
+	tbprint.c \
+	tbutils.c \
+	tbxface.c \
+	tbxfroot.c \
+	tbfind.c \
+	utaddress.c \
+	utascii.c \
+	utcache.c \
+	utcksum.c \
+	utdebug.c \
+	utdecode.c \
+	utdelete.c \
+	utinit.c \
+	utmutex.c \
+	utobject.c \
+	utosi.c \
+	utstring.c \
+	utxfinit.c
+
 CFLAGS+=	-I${.CURDIR}/../loader
 .if ${MK_LOADER_ZFS} != "no"
 CFLAGS+=	-I${ZFSSRC}
@@ -45,6 +73,8 @@ CFLAGS.framebuffer.c += -I$(SRCTOP)/sys/teken
 CFLAGS.framebuffer.c += -I${SRCTOP}/contrib/pnglite
 CFLAGS.main.c += -I$(SRCTOP)/sys/teken
 CFLAGS.main.c += -I${SRCTOP}/contrib/pnglite
+CFLAGS.main.c += -I${EFISRC}/acpica/include
+CFLAGS.main.c += -I${EFISRC}/contrib/dev/acpica/include
 CFLAGS.gfx_fb.c += -I$(SRCTOP)/sys/teken
 CFLAGS.gfx_fb.c += -I${SRCTOP}/sys/cddl/contrib/opensolaris/common/lz4
 CFLAGS.gfx_fb.c += -I${SRCTOP}/contrib/pnglite
@@ -59,6 +89,11 @@ CWARNFLAGS.main.c+=	-Wno-format
 
 .PATH: ${.CURDIR}/../loader
 .PATH: ${.CURDIR}/../loader/arch/${__arch}
+.PATH: ${.CURDIR}/../acpica
+.PATH: ${.CURDIR}/../acpica/Osd
+.PATH: ${.CURDIR}/../contrib/dev/acpica/components/tables
+.PATH: ${.CURDIR}/../contrib/dev/acpica/components/namespace
+.PATH: ${.CURDIR}/../contrib/dev/acpica/components/utilities
 .include "${.CURDIR}/../loader/arch/${__arch}/Makefile.inc"
 
 CFLAGS+=	-I${.CURDIR}

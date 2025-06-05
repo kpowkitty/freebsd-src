@@ -69,6 +69,8 @@
 #include "actypes.h"
 #include "actbl.h"
 
+#include "acpi.h"
+
 #include "loader_efi.h"
 
 struct arch_switch archsw = {	/* MI/MD interface boundary */
@@ -1221,6 +1223,9 @@ main(int argc, CHAR16 *argv[])
 
 	/* Report the RSDP early. */
 	acpi_detect();
+
+	/* Initialize ACPI Subsystem and Tables. */
+	acpi_identify();
 
 	/*
 	 * Chicken-and-egg problem; we want to have console output early, but
