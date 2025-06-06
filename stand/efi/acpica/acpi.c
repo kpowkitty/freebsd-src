@@ -74,8 +74,6 @@ acpi_Startup(void)
 int
 acpi_identify(void)
 {
-    ACPI_TABLE_RSDP     *rsdp;
-    ACPI_TABLE_HEADER   *rsdt;
     ACPI_PHYSICAL_ADDRESS paddr;
 	char oemid[ACPI_OEM_ID_SIZE + 1];
 	char oemtableid[ACPI_OEM_TABLE_ID_SIZE + 1];
@@ -88,7 +86,18 @@ acpi_identify(void)
         return (ENXIO);
     }
 
-    if ((paddr = AcpiOsGetRootPointer()) == 0 ||
+	/*
+	 * XXX - Can we simply get the physical address of it and traverse it?
+	 * Find out why the driver does the below and decide if it is necessary.
+	 */
+	if ((paddr = AcpiOsGetRootPointer()) == 0) {
+		return (ENXIO);
+	}
+
+    printf("Successfully got paddr: %p.", paddr);
+
+	/*
+	if ((paddr = AcpiOsGetRootPointer()) == 0 ||
         (rsdp = AcpiOsMapMemory(paddr, sizeof(ACPI_TABLE_RSDP))) == NULL)
         return (ENXIO);
     if (rsdp->Revision > 1 && rsdp->XsdtPhysicalAddress != 0)
@@ -100,7 +109,7 @@ acpi_identify(void)
     if ((rsdt = AcpiOsMapMemory(paddr, sizeof(ACPI_TABLE_HEADER))) == NULL)
         return (ENXIO);
 	
-	/* Initialize acpi_desc and acpi_ca_version. */
+	/* Initialize acpi_desc and acpi_ca_version. 
 	memcpy(oemid, rsdt->OemId, ACPI_OEM_ID_SIZE);
 	oemid[ACPI_OEM_ID_SIZE] = '\0';
 	memcpy(oemtableid, rsdt->OemTableId, ACPI_OEM_TABLE_ID_SIZE);
@@ -118,6 +127,6 @@ acpi_identify(void)
 	printf("acpi_ca_version: %x", acpi_ca_version);
     
 	AcpiOsUnmapMemory(rsdt, sizeof(ACPI_TABLE_HEADER));
-
+	*/
     return (0);
 }

@@ -50,7 +50,7 @@ AcpiOsFree(void *Memory)
 void *
 AcpiOsMapMemory(ACPI_PHYSICAL_ADDRESS PhysicalAddress, ACPI_SIZE Length)
 {
-    return (void *)(uintptr_t)PhysicalAddress;
+    /* Do nothing. */
 }
 
 void
