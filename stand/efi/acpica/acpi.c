@@ -33,6 +33,8 @@
 #include <contrib/dev/acpica/include/acpi.h>
 #include <contrib/dev/acpica/include/accommon.h>
 
+#include "acpi.h"
+
 /* Holds the description of the acpi0 device. */
 static char acpi_desc[ACPI_OEM_ID_SIZE + ACPI_OEM_TABLE_ID_SIZE + 2];
 

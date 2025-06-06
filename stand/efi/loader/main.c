@@ -1213,6 +1213,7 @@ main(int argc, CHAR16 *argv[])
 	char boot_info[4096];
 	char buf[32];
 	bool uefi_boot_mgr;
+	int ret = 0;
 
 #if !defined(__arm__)
 	efi_smbios_detect();
@@ -1225,7 +1226,9 @@ main(int argc, CHAR16 *argv[])
 	acpi_detect();
 
 	/* Initialize ACPI Subsystem and Tables. */
-	acpi_identify();
+	if ((ret = acpi_identify()) != 0) {
+		printf("Failed to acpi_identify().");
+	}
 
 	/*
 	 * Chicken-and-egg problem; we want to have console output early, but
