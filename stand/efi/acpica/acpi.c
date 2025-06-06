@@ -106,8 +106,9 @@ acpi_identify(void)
 	memcpy(oemtableid, rsdt->OemTableId, ACPI_OEM_TABLE_ID_SIZE);
 	oemtableid[ACPI_OEM_TABLE_ID_SIZE] = '\0';
 
-	trim_trailing_spaces(oemid);
-	trim_trailing_spaces(oemtableid);
+	// To be implemented
+	//trim_trailing_spaces(oemid);
+	//trim_trailing_spaces(oemtableid);
 
 	snprintf(acpi_desc, sizeof(acpi_desc), "%s %s", oemid, oemtableid);
 
