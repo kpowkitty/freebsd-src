@@ -94,7 +94,7 @@ acpi_identify(void)
 		return (ENXIO);
 	}
 
-    printf("Successfully got paddr: %p.", paddr);
+    printf("Successfully got paddr: %0x%llx\n.", (unsigned long long)paddr);
 
 	/*
 	if ((paddr = AcpiOsGetRootPointer()) == 0 ||
@@ -109,7 +109,7 @@ acpi_identify(void)
     if ((rsdt = AcpiOsMapMemory(paddr, sizeof(ACPI_TABLE_HEADER))) == NULL)
         return (ENXIO);
 	
-	/* Initialize acpi_desc and acpi_ca_version. 
+	Initialize acpi_desc and acpi_ca_version. 
 	memcpy(oemid, rsdt->OemId, ACPI_OEM_ID_SIZE);
 	oemid[ACPI_OEM_ID_SIZE] = '\0';
 	memcpy(oemtableid, rsdt->OemTableId, ACPI_OEM_TABLE_ID_SIZE);
