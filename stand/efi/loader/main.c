@@ -69,7 +69,7 @@
 #include "actypes.h"
 #include "actbl.h"
 
-#include "acpi.h"
+#include <acpi.h>
 
 #include "loader_efi.h"
 
