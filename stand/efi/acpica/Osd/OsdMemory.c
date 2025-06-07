@@ -31,6 +31,7 @@
  * 6.2 : Memory Management
  */
 
+#include <efi.h>
 #include <efidef.h>
 
 #include <contrib/dev/acpica/include/acpi.h>
