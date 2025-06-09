@@ -149,10 +149,10 @@
  *
  *****************************************************************************/
 
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
-#include <contrib/dev/acpica/include/acnamesp.h>
-#include <contrib/dev/acpica/include/amlcode.h>
+#include <acpi.h>
+#include <accommon.h>
+#include <acnamesp.h>
+#include <amlcode.h>
 
 #define _COMPONENT          ACPI_UTILITIES
         ACPI_MODULE_NAME    ("utdecode")

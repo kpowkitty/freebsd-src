@@ -149,11 +149,11 @@
  *
  *****************************************************************************/
 
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
-#include <contrib/dev/acpica/include/actables.h>
-#include <contrib/dev/acpica/include/acdisasm.h>
-#include <contrib/dev/acpica/include/acutils.h>
+#include <acpi.h>
+#include <accommon.h>
+#include <actables.h>
+#include <acdisasm.h>
+#include <acutils.h>
 
 #define _COMPONENT          ACPI_TABLES
         ACPI_MODULE_NAME    ("tbprint")
