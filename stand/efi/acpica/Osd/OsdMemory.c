@@ -33,6 +33,7 @@
 
 #include <efi.h>
 #include <efidef.h>
+#include <efilib.h>
 
 #include <contrib/dev/acpica/include/acpi.h>
 
