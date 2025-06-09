@@ -181,24 +181,24 @@ extern const UINT8 AcpiGbl_Ctypes[];
 #define isprint(c)  (AcpiGbl_Ctypes[(unsigned char)(c)] & (_ACPI_LO | _ACPI_UP | _ACPI_DI | _ACPI_XS | _ACPI_PU))
 #define isalpha(c)  (AcpiGbl_Ctypes[(unsigned char)(c)] & (_ACPI_LO | _ACPI_UP))
 
-/* Error code */
+/* Error code
 
-#define EPERM            1 /* Operation not permitted */
-#define ENOENT           2 /* No such file or directory */
-#define EINTR            4 /* Interrupted system call */
-#define EIO              5 /* I/O error */
-#define EBADF            9 /* Bad file number */
-#define EAGAIN          11 /* Try again */
-#define ENOMEM          12 /* Out of memory */
-#define EACCES          13 /* Permission denied */
-#define EFAULT          14 /* Bad address */
-#define EBUSY           16 /* Device or resource busy */
-#define EEXIST          17 /* File exists */
-#define ENODEV          19 /* No such device */
-#define EINVAL          22 /* Invalid argument */
-#define EPIPE           32 /* Broken pipe */
-#define ERANGE          34 /* Math result not representable */
-
+#define EPERM            1 Operation not permitted 
+#define ENOENT           2 No such file or directory
+#define EINTR            4 Interrupted system call
+#define EIO              5 I/O error
+#define EBADF            9 Bad file number
+#define EAGAIN          11 Try again
+#define ENOMEM          12 Out of memory
+#define EACCES          13 Permission denied
+#define EFAULT          14 Bad address
+#define EBUSY           16 Device or resource busy
+#define EEXIST          17 File exists
+#define ENODEV          19 No such device
+#define EINVAL          22 Invalid argument
+#define EPIPE           32 Broken pipe
+#define ERANGE          34 Math result not representable
+*/
 /* Strings 
 XXX Figure out whats already def in FreeBSD loader and what's not...
 char *
