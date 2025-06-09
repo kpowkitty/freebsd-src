@@ -94,7 +94,7 @@ acpi_identify(void)
 		return (ENXIO);
 	}
 
-    printf("Successfully got paddr: %0x%llx\n.", (unsigned long long)paddr);
+    printf("Successfully got paddr: 0x%llx\n.", (unsigned long long)paddr);
 
 	/*
 	if ((paddr = AcpiOsGetRootPointer()) == 0 ||
