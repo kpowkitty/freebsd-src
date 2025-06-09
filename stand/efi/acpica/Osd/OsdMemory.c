@@ -54,7 +54,13 @@ AcpiOsFree(void *Memory)
 void *
 AcpiOsMapMemory(ACPI_PHYSICAL_ADDRESS PhysicalAddress, ACPI_SIZE Length)
 {
-    /* Do nothing. */
+    /* Originally, this mapped physical address space to virtual address
+	 * space. Instead of going through and removing all calls to this,
+	 * we opt to change in place. To have it retain its original 
+	 * functionality, we need to have it return the physical address, as we 
+	 * simply operate in physical address space. */
+
+	return (void *)PhysicalAddress;
 }
 
 void
@@ -68,7 +74,7 @@ ACPI_STATUS
 AcpiOsGetPhysicalAddress(void *LogicalAddress,
     ACPI_PHYSICAL_ADDRESS *PhysicalAddress)
 {
-    /* We can't necessarily do this, so cop out. 
+     We can't necessarily do this, so cop out. 
     return (AE_BAD_ADDRESS);
 }
 
