@@ -23,8 +23,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef ACPI_H
-#define ACPI_H
+#ifndef INIT_ACPI_H
+#define INIT_ACPI_H
 
 ACPI_STATUS acpi_Startup(void);
 int acpi_identify(void);
