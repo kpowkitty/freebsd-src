@@ -199,8 +199,8 @@ extern const UINT8 AcpiGbl_Ctypes[];
 #define EPIPE           32 /* Broken pipe */
 #define ERANGE          34 /* Math result not representable */
 
-/* Strings */
-
+/* Strings 
+XXX Figure out whats already def in FreeBSD loader and what's not...
 char *
 strcat (
     char                    *DstString,
@@ -259,7 +259,7 @@ strstr (
     char                    *String2);
 
 
-/* Conversion */
+ Conversion 
 
 UINT32
 strtoul (
@@ -268,7 +268,7 @@ strtoul (
     UINT32                  Base);
 
 
-/* Memory */
+Memory
 
 int
 memcmp (
@@ -295,7 +295,7 @@ memset (
     ACPI_SIZE               Count);
 
 
-/* upper/lower case */
+upper/lower case
 
 int
 tolower (
@@ -304,6 +304,7 @@ tolower (
 int
 toupper (
     int                     c);
+*/
 
 /*
  * utprint - printf/vprintf output functions
@@ -324,7 +325,7 @@ vsnprintf (
     ACPI_SIZE               Size,
     const char              *Format,
     va_list                 Args);
-
+/*
 int
 snprintf (
     char                    *String,
@@ -337,6 +338,7 @@ sprintf (
     char                    *String,
     const char              *Format,
     ...);
+*/
 
 #ifdef ACPI_APPLICATION
 #define SEEK_SET            0
