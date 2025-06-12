@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Module Name: utinit - Common ACPI subsystem initialization
+ * Module Name: dswscope - Scope stack manipulation
  *
  *****************************************************************************/
 
@@ -151,312 +151,191 @@
 
 #include <acpi.h>
 #include <accommon.h>
-#include <acnamesp.h>
-#include <acevents.h>
-#include <actables.h>
-
-#define _COMPONENT          ACPI_UTILITIES
-        ACPI_MODULE_NAME    ("utinit")
-
-/* Local prototypes */
-
-static void AcpiUtTerminate (
-    void);
-
-#if (!ACPI_REDUCED_HARDWARE)
-
-static void
-AcpiUtFreeGpeLists (
-    void);
-
-#else
-
-#define AcpiUtFreeGpeLists()
-#endif /* !ACPI_REDUCED_HARDWARE */
+#include <acdispat.h>
 
 
-#if (!ACPI_REDUCED_HARDWARE)
-/******************************************************************************
+#define _COMPONENT          ACPI_DISPATCHER
+        ACPI_MODULE_NAME    ("dswscope")
+
+
+/****************************************************************************
  *
- * FUNCTION:    AcpiUtFreeGpeLists
+ * FUNCTION:    AcpiDsScopeStackClear
  *
- * PARAMETERS:  none
+ * PARAMETERS:  WalkState       - Current state
  *
- * RETURN:      none
+ * RETURN:      None
  *
- * DESCRIPTION: Free global GPE lists
+ * DESCRIPTION: Pop (and free) everything on the scope stack except the
+ *              root scope object (which remains at the stack top.)
  *
- ******************************************************************************/
+ ***************************************************************************/
 
-static void
-AcpiUtFreeGpeLists (
-    void)
+void
+AcpiDsScopeStackClear (
+    ACPI_WALK_STATE         *WalkState)
 {
-    ACPI_GPE_BLOCK_INFO     *GpeBlock;
-    ACPI_GPE_BLOCK_INFO     *NextGpeBlock;
-    ACPI_GPE_XRUPT_INFO     *GpeXruptInfo;
-    ACPI_GPE_XRUPT_INFO     *NextGpeXruptInfo;
+    ACPI_GENERIC_STATE      *ScopeInfo;
+
+    ACPI_FUNCTION_NAME (DsScopeStackClear);
 
 
-    /* Free global GPE blocks and related info structures */
-
-    GpeXruptInfo = AcpiGbl_GpeXruptListHead;
-    while (GpeXruptInfo)
+    while (WalkState->ScopeInfo)
     {
-        GpeBlock = GpeXruptInfo->GpeBlockListHead;
-        while (GpeBlock)
-        {
-            NextGpeBlock = GpeBlock->Next;
-            ACPI_FREE (GpeBlock->EventInfo);
-            ACPI_FREE (GpeBlock->RegisterInfo);
-            ACPI_FREE (GpeBlock);
+        /* Pop a scope off the stack */
 
-            GpeBlock = NextGpeBlock;
-        }
-        NextGpeXruptInfo = GpeXruptInfo->Next;
-        ACPI_FREE (GpeXruptInfo);
-        GpeXruptInfo = NextGpeXruptInfo;
+        ScopeInfo = WalkState->ScopeInfo;
+        WalkState->ScopeInfo = ScopeInfo->Scope.Next;
+
+        ACPI_DEBUG_PRINT ((ACPI_DB_EXEC,
+            "Popped object type (%s)\n",
+            AcpiUtGetTypeName (ScopeInfo->Common.Value)));
+
+        AcpiUtDeleteGenericState (ScopeInfo);
     }
 }
-#endif /* !ACPI_REDUCED_HARDWARE */
 
 
-/*******************************************************************************
+/****************************************************************************
  *
- * FUNCTION:    AcpiUtInitGlobals
+ * FUNCTION:    AcpiDsScopeStackPush
  *
- * PARAMETERS:  None
+ * PARAMETERS:  Node            - Name to be made current
+ *              Type            - Type of frame being pushed
+ *              WalkState       - Current state
  *
  * RETURN:      Status
  *
- * DESCRIPTION: Initialize ACPICA globals. All globals that require specific
- *              initialization should be initialized here. This allows for
- *              a warm restart.
+ * DESCRIPTION: Push the current scope on the scope stack, and make the
+ *              passed Node current.
  *
- ******************************************************************************/
+ ***************************************************************************/
 
 ACPI_STATUS
-AcpiUtInitGlobals (
-    void)
+AcpiDsScopeStackPush (
+    ACPI_NAMESPACE_NODE     *Node,
+    ACPI_OBJECT_TYPE        Type,
+    ACPI_WALK_STATE         *WalkState)
 {
-    ACPI_STATUS             Status;
-    UINT32                  i;
+    ACPI_GENERIC_STATE      *ScopeInfo;
+    ACPI_GENERIC_STATE      *OldScopeInfo;
 
 
-    ACPI_FUNCTION_TRACE (UtInitGlobals);
+    ACPI_FUNCTION_TRACE (DsScopeStackPush);
 
 
-    /* Create all memory caches */
-
-    Status = AcpiUtCreateCaches ();
-    if (ACPI_FAILURE (Status))
+    if (!Node)
     {
-        return_ACPI_STATUS (Status);
+        /* Invalid scope   */
+
+        ACPI_ERROR ((AE_INFO, "Null scope parameter"));
+        return_ACPI_STATUS (AE_BAD_PARAMETER);
     }
 
-    /* Address Range lists */
+    /* Make sure object type is valid */
 
-    for (i = 0; i < ACPI_ADDRESS_RANGE_MAX; i++)
+    if (!AcpiUtValidObjectType (Type))
     {
-        AcpiGbl_AddressRangeList[i] = NULL;
+        ACPI_WARNING ((AE_INFO,
+            "Invalid object type: 0x%X", Type));
     }
 
-    /* Mutex locked flags */
+    /* Allocate a new scope object */
 
-    for (i = 0; i < ACPI_NUM_MUTEX; i++)
+    ScopeInfo = AcpiUtCreateGenericState ();
+    if (!ScopeInfo)
     {
-        AcpiGbl_MutexInfo[i].Mutex          = NULL;
-        AcpiGbl_MutexInfo[i].ThreadId       = ACPI_MUTEX_NOT_ACQUIRED;
-        AcpiGbl_MutexInfo[i].UseCount       = 0;
+        return_ACPI_STATUS (AE_NO_MEMORY);
     }
 
-    for (i = 0; i < ACPI_NUM_OWNERID_MASKS; i++)
+    /* Init new scope object */
+
+    ScopeInfo->Common.DescriptorType = ACPI_DESC_TYPE_STATE_WSCOPE;
+    ScopeInfo->Scope.Node = Node;
+    ScopeInfo->Common.Value = (UINT16) Type;
+
+    WalkState->ScopeDepth++;
+
+    ACPI_DEBUG_PRINT ((ACPI_DB_EXEC,
+        "[%.2d] Pushed scope ", (UINT32) WalkState->ScopeDepth));
+
+    OldScopeInfo = WalkState->ScopeInfo;
+    if (OldScopeInfo)
     {
-        AcpiGbl_OwnerIdMask[i]              = 0;
+        ACPI_DEBUG_PRINT_RAW ((ACPI_DB_EXEC,
+            "[%4.4s] (%s)",
+            AcpiUtGetNodeName (OldScopeInfo->Scope.Node),
+            AcpiUtGetTypeName (OldScopeInfo->Common.Value)));
+    }
+    else
+    {
+        ACPI_DEBUG_PRINT_RAW ((ACPI_DB_EXEC, ACPI_NAMESPACE_ROOT));
     }
 
-    /* Last OwnerID is never valid */
+    ACPI_DEBUG_PRINT_RAW ((ACPI_DB_EXEC,
+        ", New scope -> [%4.4s] (%s)\n",
+        AcpiUtGetNodeName (ScopeInfo->Scope.Node),
+        AcpiUtGetTypeName (ScopeInfo->Common.Value)));
 
-    AcpiGbl_OwnerIdMask[ACPI_NUM_OWNERID_MASKS - 1] = 0x80000000;
+    /* Push new scope object onto stack */
 
-    /* Event counters */
-
-    AcpiMethodCount                     = 0;
-    AcpiSciCount                        = 0;
-    AcpiGpeCount                        = 0;
-
-    for (i = 0; i < ACPI_NUM_FIXED_EVENTS; i++)
-    {
-        AcpiFixedEventCount[i]              = 0;
-    }
-
-#if (!ACPI_REDUCED_HARDWARE)
-
-    /* GPE/SCI support */
-
-    AcpiGbl_AllGpesInitialized          = FALSE;
-    AcpiGbl_GpeXruptListHead            = NULL;
-    AcpiGbl_GpeFadtBlocks[0]            = NULL;
-    AcpiGbl_GpeFadtBlocks[1]            = NULL;
-    AcpiCurrentGpeCount                 = 0;
-
-    AcpiGbl_GlobalEventHandler          = NULL;
-    AcpiGbl_SciHandlerList              = NULL;
-
-#endif /* !ACPI_REDUCED_HARDWARE */
-
-    /* Global handlers */
-
-    AcpiGbl_GlobalNotify[0].Handler     = NULL;
-    AcpiGbl_GlobalNotify[1].Handler     = NULL;
-    AcpiGbl_ExceptionHandler            = NULL;
-    AcpiGbl_InitHandler                 = NULL;
-    AcpiGbl_TableHandler                = NULL;
-    AcpiGbl_InterfaceHandler            = NULL;
-
-    /* Global Lock support */
-
-    AcpiGbl_GlobalLockSemaphore         = ACPI_SEMAPHORE_NULL;
-    AcpiGbl_GlobalLockMutex             = NULL;
-    AcpiGbl_GlobalLockAcquired          = FALSE;
-    AcpiGbl_GlobalLockHandle            = 0;
-    AcpiGbl_GlobalLockPresent           = FALSE;
-
-    /* Miscellaneous variables */
-
-    AcpiGbl_DSDT                        = NULL;
-    AcpiGbl_CmSingleStep                = FALSE;
-    AcpiGbl_Shutdown                    = FALSE;
-    AcpiGbl_NsLookupCount               = 0;
-    AcpiGbl_PsFindCount                 = 0;
-    AcpiGbl_AcpiHardwarePresent         = TRUE;
-    AcpiGbl_LastOwnerIdIndex            = 0;
-    AcpiGbl_NextOwnerIdOffset           = 0;
-    AcpiGbl_DebuggerConfiguration       = DEBUGGER_THREADING;
-    AcpiGbl_OsiMutex                    = NULL;
-
-    /* Hardware oriented */
-
-    AcpiGbl_EventsInitialized           = FALSE;
-    AcpiGbl_SystemAwakeAndRunning       = TRUE;
-
-    /* Namespace */
-
-    AcpiGbl_RootNode                    = NULL;
-    AcpiGbl_RootNodeStruct.Name.Integer = ACPI_ROOT_NAME;
-    AcpiGbl_RootNodeStruct.DescriptorType = ACPI_DESC_TYPE_NAMED;
-    AcpiGbl_RootNodeStruct.Type         = ACPI_TYPE_DEVICE;
-    AcpiGbl_RootNodeStruct.Parent       = NULL;
-    AcpiGbl_RootNodeStruct.Child        = NULL;
-    AcpiGbl_RootNodeStruct.Peer         = NULL;
-    AcpiGbl_RootNodeStruct.Object       = NULL;
-
-
-#ifdef ACPI_DISASSEMBLER
-    AcpiGbl_ExternalList                = NULL;
-    AcpiGbl_NumExternalMethods          = 0;
-    AcpiGbl_ResolvedExternalMethods     = 0;
-#endif
-
-#ifdef ACPI_DEBUG_OUTPUT
-    AcpiGbl_LowestStackPointer          = ACPI_CAST_PTR (ACPI_SIZE, ACPI_SIZE_MAX);
-#endif
-
-#ifdef ACPI_DBG_TRACK_ALLOCATIONS
-    AcpiGbl_DisplayFinalMemStats        = FALSE;
-    AcpiGbl_DisableMemTracking          = FALSE;
-#endif
-
+    AcpiUtPushGenericState (&WalkState->ScopeInfo, ScopeInfo);
     return_ACPI_STATUS (AE_OK);
 }
 
 
-/******************************************************************************
+/****************************************************************************
  *
- * FUNCTION:    AcpiUtTerminate
+ * FUNCTION:    AcpiDsScopeStackPop
  *
- * PARAMETERS:  none
+ * PARAMETERS:  WalkState       - Current state
  *
- * RETURN:      none
+ * RETURN:      Status
  *
- * DESCRIPTION: Free global memory
+ * DESCRIPTION: Pop the scope stack once.
  *
- ******************************************************************************/
+ ***************************************************************************/
 
-static void
-AcpiUtTerminate (
-    void)
+ACPI_STATUS
+AcpiDsScopeStackPop (
+    ACPI_WALK_STATE         *WalkState)
 {
-    ACPI_FUNCTION_TRACE (UtTerminate);
-
-    AcpiUtFreeGpeLists ();
-    AcpiUtDeleteAddressLists ();
-    return_VOID;
-}
-
-#ifdef ACPI_INIT_OBJS
-
-/*******************************************************************************
- *
- * FUNCTION:    AcpiUtSubsystemShutdown
- *
- * PARAMETERS:  None
- *
- * RETURN:      None
- *
- * DESCRIPTION: Shutdown the various components. Do not delete the mutex
- *              objects here, because the AML debugger may be still running.
- *
- ******************************************************************************/
-
-void
-AcpiUtSubsystemShutdown (
-    void)
-{
-    ACPI_FUNCTION_TRACE (UtSubsystemShutdown);
+    ACPI_GENERIC_STATE      *ScopeInfo;
+    ACPI_GENERIC_STATE      *NewScopeInfo;
 
 
-    /* Just exit if subsystem is already shutdown */
+    ACPI_FUNCTION_TRACE (DsScopeStackPop);
 
-    if (AcpiGbl_Shutdown)
+
+    /*
+     * Pop scope info object off the stack.
+     */
+    ScopeInfo = AcpiUtPopGenericState (&WalkState->ScopeInfo);
+    if (!ScopeInfo)
     {
-        ACPI_ERROR ((AE_INFO, "ACPI Subsystem is already terminated"));
-        return_VOID;
+        return_ACPI_STATUS (AE_STACK_UNDERFLOW);
     }
 
-    /* Subsystem appears active, go ahead and shut it down */
+    WalkState->ScopeDepth--;
 
-    AcpiGbl_Shutdown = TRUE;
-    AcpiGbl_StartupFlags = 0;
-    ACPI_DEBUG_PRINT ((ACPI_DB_INFO, "Shutting down ACPI Subsystem\n"));
+    ACPI_DEBUG_PRINT ((ACPI_DB_EXEC,
+        "[%.2d] Popped scope [%4.4s] (%s), New scope -> ",
+        (UINT32) WalkState->ScopeDepth,
+        AcpiUtGetNodeName (ScopeInfo->Scope.Node),
+        AcpiUtGetTypeName (ScopeInfo->Common.Value)));
 
-#ifndef ACPI_ASL_COMPILER
+    NewScopeInfo = WalkState->ScopeInfo;
+    if (NewScopeInfo)
+    {
+        ACPI_DEBUG_PRINT_RAW ((ACPI_DB_EXEC, "[%4.4s] (%s)\n",
+            AcpiUtGetNodeName (NewScopeInfo->Scope.Node),
+            AcpiUtGetTypeName (NewScopeInfo->Common.Value)));
+    }
+    else
+    {
+        ACPI_DEBUG_PRINT_RAW ((ACPI_DB_EXEC, "%s\n", ACPI_NAMESPACE_ROOT));
+    }
 
-    /* Close the AcpiEvent Handling */
-
-    AcpiEvTerminate ();
-
-    /* Delete any dynamic _OSI interfaces */
-
-    AcpiUtInterfaceTerminate ();
-#endif
-
-    /* Close the Namespace */
-
-    AcpiNsTerminate ();
-
-    /* Delete the ACPI tables */
-
-    AcpiTbTerminate ();
-
-    /* Close the globals */
-
-    AcpiUtTerminate ();
-
-    /* Purge the local caches */
-
-    (void) AcpiUtDeleteCaches ();
-    return_VOID;
+    AcpiUtDeleteGenericState (ScopeInfo);
+    return_ACPI_STATUS (AE_OK);
 }
-
-#endif /* ACPI_INIT_OBJS */

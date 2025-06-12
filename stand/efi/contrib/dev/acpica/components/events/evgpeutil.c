@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Module Name: utinit - Common ACPI subsystem initialization
+ * Module Name: evgpeutil - GPE utilities
  *
  *****************************************************************************/
 
@@ -151,312 +151,356 @@
 
 #include <acpi.h>
 #include <accommon.h>
-#include <acnamesp.h>
 #include <acevents.h>
-#include <actables.h>
 
-#define _COMPONENT          ACPI_UTILITIES
-        ACPI_MODULE_NAME    ("utinit")
-
-/* Local prototypes */
-
-static void AcpiUtTerminate (
-    void);
-
-#if (!ACPI_REDUCED_HARDWARE)
-
-static void
-AcpiUtFreeGpeLists (
-    void);
-
-#else
-
-#define AcpiUtFreeGpeLists()
-#endif /* !ACPI_REDUCED_HARDWARE */
+#define _COMPONENT          ACPI_EVENTS
+        ACPI_MODULE_NAME    ("evgpeutil")
 
 
-#if (!ACPI_REDUCED_HARDWARE)
-/******************************************************************************
- *
- * FUNCTION:    AcpiUtFreeGpeLists
- *
- * PARAMETERS:  none
- *
- * RETURN:      none
- *
- * DESCRIPTION: Free global GPE lists
- *
- ******************************************************************************/
-
-static void
-AcpiUtFreeGpeLists (
-    void)
-{
-    ACPI_GPE_BLOCK_INFO     *GpeBlock;
-    ACPI_GPE_BLOCK_INFO     *NextGpeBlock;
-    ACPI_GPE_XRUPT_INFO     *GpeXruptInfo;
-    ACPI_GPE_XRUPT_INFO     *NextGpeXruptInfo;
-
-
-    /* Free global GPE blocks and related info structures */
-
-    GpeXruptInfo = AcpiGbl_GpeXruptListHead;
-    while (GpeXruptInfo)
-    {
-        GpeBlock = GpeXruptInfo->GpeBlockListHead;
-        while (GpeBlock)
-        {
-            NextGpeBlock = GpeBlock->Next;
-            ACPI_FREE (GpeBlock->EventInfo);
-            ACPI_FREE (GpeBlock->RegisterInfo);
-            ACPI_FREE (GpeBlock);
-
-            GpeBlock = NextGpeBlock;
-        }
-        NextGpeXruptInfo = GpeXruptInfo->Next;
-        ACPI_FREE (GpeXruptInfo);
-        GpeXruptInfo = NextGpeXruptInfo;
-    }
-}
-#endif /* !ACPI_REDUCED_HARDWARE */
-
-
+#if (!ACPI_REDUCED_HARDWARE) /* Entire module */
 /*******************************************************************************
  *
- * FUNCTION:    AcpiUtInitGlobals
+ * FUNCTION:    AcpiEvWalkGpeList
  *
- * PARAMETERS:  None
+ * PARAMETERS:  GpeWalkCallback     - Routine called for each GPE block
+ *              Context             - Value passed to callback
  *
  * RETURN:      Status
  *
- * DESCRIPTION: Initialize ACPICA globals. All globals that require specific
- *              initialization should be initialized here. This allows for
- *              a warm restart.
+ * DESCRIPTION: Walk the GPE lists.
  *
  ******************************************************************************/
 
 ACPI_STATUS
-AcpiUtInitGlobals (
-    void)
+AcpiEvWalkGpeList (
+    ACPI_GPE_CALLBACK       GpeWalkCallback,
+    void                    *Context)
+{
+    ACPI_GPE_BLOCK_INFO     *GpeBlock;
+    ACPI_GPE_XRUPT_INFO     *GpeXruptInfo;
+    ACPI_STATUS             Status = AE_OK;
+    ACPI_CPU_FLAGS          Flags;
+
+
+    ACPI_FUNCTION_TRACE (EvWalkGpeList);
+
+
+    Flags = AcpiOsAcquireLock (AcpiGbl_GpeLock);
+
+    /* Walk the interrupt level descriptor list */
+
+    GpeXruptInfo = AcpiGbl_GpeXruptListHead;
+    while (GpeXruptInfo)
+    {
+        /* Walk all Gpe Blocks attached to this interrupt level */
+
+        GpeBlock = GpeXruptInfo->GpeBlockListHead;
+        while (GpeBlock)
+        {
+            /* One callback per GPE block */
+
+            Status = GpeWalkCallback (GpeXruptInfo, GpeBlock, Context);
+            if (ACPI_FAILURE (Status))
+            {
+                if (Status == AE_CTRL_END) /* Callback abort */
+                {
+                    Status = AE_OK;
+                }
+                goto UnlockAndExit;
+            }
+
+            GpeBlock = GpeBlock->Next;
+        }
+
+        GpeXruptInfo = GpeXruptInfo->Next;
+    }
+
+UnlockAndExit:
+    AcpiOsReleaseLock (AcpiGbl_GpeLock, Flags);
+    return_ACPI_STATUS (Status);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiEvGetGpeDevice
+ *
+ * PARAMETERS:  GPE_WALK_CALLBACK
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Matches the input GPE index (0-CurrentGpeCount) with a GPE
+ *              block device. NULL if the GPE is one of the FADT-defined GPEs.
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AcpiEvGetGpeDevice (
+    ACPI_GPE_XRUPT_INFO     *GpeXruptInfo,
+    ACPI_GPE_BLOCK_INFO     *GpeBlock,
+    void                    *Context)
+{
+    ACPI_GPE_DEVICE_INFO    *Info = Context;
+
+
+    /* Increment Index by the number of GPEs in this block */
+
+    Info->NextBlockBaseIndex += GpeBlock->GpeCount;
+
+    if (Info->Index < Info->NextBlockBaseIndex)
+    {
+        /*
+         * The GPE index is within this block, get the node. Leave the node
+         * NULL for the FADT-defined GPEs
+         */
+        if ((GpeBlock->Node)->Type == ACPI_TYPE_DEVICE)
+        {
+            Info->GpeDevice = GpeBlock->Node;
+        }
+
+        Info->Status = AE_OK;
+        return (AE_CTRL_END);
+    }
+
+    return (AE_OK);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiEvGetGpeXruptBlock
+ *
+ * PARAMETERS:  InterruptNumber             - Interrupt for a GPE block
+ *              GpeXruptBlock               - Where the block is returned
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Get or Create a GPE interrupt block. There is one interrupt
+ *              block per unique interrupt level used for GPEs. Should be
+ *              called only when the GPE lists are semaphore locked and not
+ *              subject to change.
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AcpiEvGetGpeXruptBlock (
+    UINT32                  InterruptNumber,
+    ACPI_GPE_XRUPT_INFO     **GpeXruptBlock)
+{
+    ACPI_GPE_XRUPT_INFO     *NextGpeXrupt;
+    ACPI_GPE_XRUPT_INFO     *GpeXrupt;
+    ACPI_STATUS             Status;
+    ACPI_CPU_FLAGS          Flags;
+
+
+    ACPI_FUNCTION_TRACE (EvGetGpeXruptBlock);
+
+
+    /* No need for lock since we are not changing any list elements here */
+
+    NextGpeXrupt = AcpiGbl_GpeXruptListHead;
+    while (NextGpeXrupt)
+    {
+        if (NextGpeXrupt->InterruptNumber == InterruptNumber)
+        {
+            *GpeXruptBlock = NextGpeXrupt;
+            return_ACPI_STATUS (AE_OK);
+        }
+
+        NextGpeXrupt = NextGpeXrupt->Next;
+    }
+
+    /* Not found, must allocate a new xrupt descriptor */
+
+    GpeXrupt = ACPI_ALLOCATE_ZEROED (sizeof (ACPI_GPE_XRUPT_INFO));
+    if (!GpeXrupt)
+    {
+        return_ACPI_STATUS (AE_NO_MEMORY);
+    }
+
+    GpeXrupt->InterruptNumber = InterruptNumber;
+
+    /* Install new interrupt descriptor with spin lock */
+
+    Flags = AcpiOsAcquireLock (AcpiGbl_GpeLock);
+    if (AcpiGbl_GpeXruptListHead)
+    {
+        NextGpeXrupt = AcpiGbl_GpeXruptListHead;
+        while (NextGpeXrupt->Next)
+        {
+            NextGpeXrupt = NextGpeXrupt->Next;
+        }
+
+        NextGpeXrupt->Next = GpeXrupt;
+        GpeXrupt->Previous = NextGpeXrupt;
+    }
+    else
+    {
+        AcpiGbl_GpeXruptListHead = GpeXrupt;
+    }
+
+    AcpiOsReleaseLock (AcpiGbl_GpeLock, Flags);
+
+    /* Install new interrupt handler if not SCI_INT */
+
+    if (InterruptNumber != AcpiGbl_FADT.SciInterrupt)
+    {
+        Status = AcpiOsInstallInterruptHandler (InterruptNumber,
+            AcpiEvGpeXruptHandler, GpeXrupt);
+        if (ACPI_FAILURE (Status))
+        {
+            ACPI_EXCEPTION ((AE_INFO, Status,
+                "Could not install GPE interrupt handler at level 0x%X",
+                InterruptNumber));
+            return_ACPI_STATUS (Status);
+        }
+    }
+
+    *GpeXruptBlock = GpeXrupt;
+    return_ACPI_STATUS (AE_OK);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiEvDeleteGpeXrupt
+ *
+ * PARAMETERS:  GpeXrupt        - A GPE interrupt info block
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Remove and free a GpeXrupt block. Remove an associated
+ *              interrupt handler if not the SCI interrupt.
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AcpiEvDeleteGpeXrupt (
+    ACPI_GPE_XRUPT_INFO     *GpeXrupt)
 {
     ACPI_STATUS             Status;
-    UINT32                  i;
+    ACPI_CPU_FLAGS          Flags;
 
 
-    ACPI_FUNCTION_TRACE (UtInitGlobals);
+    ACPI_FUNCTION_TRACE (EvDeleteGpeXrupt);
 
 
-    /* Create all memory caches */
+    /* We never want to remove the SCI interrupt handler */
 
-    Status = AcpiUtCreateCaches ();
+    if (GpeXrupt->InterruptNumber == AcpiGbl_FADT.SciInterrupt)
+    {
+        GpeXrupt->GpeBlockListHead = NULL;
+        return_ACPI_STATUS (AE_OK);
+    }
+
+    /* Disable this interrupt */
+
+    Status = AcpiOsRemoveInterruptHandler (
+        GpeXrupt->InterruptNumber, AcpiEvGpeXruptHandler);
     if (ACPI_FAILURE (Status))
     {
         return_ACPI_STATUS (Status);
     }
 
-    /* Address Range lists */
+    /* Unlink the interrupt block with lock */
 
-    for (i = 0; i < ACPI_ADDRESS_RANGE_MAX; i++)
+    Flags = AcpiOsAcquireLock (AcpiGbl_GpeLock);
+    if (GpeXrupt->Previous)
     {
-        AcpiGbl_AddressRangeList[i] = NULL;
+        GpeXrupt->Previous->Next = GpeXrupt->Next;
+    }
+    else
+    {
+        /* No previous, update list head */
+
+        AcpiGbl_GpeXruptListHead = GpeXrupt->Next;
     }
 
-    /* Mutex locked flags */
-
-    for (i = 0; i < ACPI_NUM_MUTEX; i++)
+    if (GpeXrupt->Next)
     {
-        AcpiGbl_MutexInfo[i].Mutex          = NULL;
-        AcpiGbl_MutexInfo[i].ThreadId       = ACPI_MUTEX_NOT_ACQUIRED;
-        AcpiGbl_MutexInfo[i].UseCount       = 0;
+        GpeXrupt->Next->Previous = GpeXrupt->Previous;
     }
+    AcpiOsReleaseLock (AcpiGbl_GpeLock, Flags);
 
-    for (i = 0; i < ACPI_NUM_OWNERID_MASKS; i++)
-    {
-        AcpiGbl_OwnerIdMask[i]              = 0;
-    }
+    /* Free the block */
 
-    /* Last OwnerID is never valid */
-
-    AcpiGbl_OwnerIdMask[ACPI_NUM_OWNERID_MASKS - 1] = 0x80000000;
-
-    /* Event counters */
-
-    AcpiMethodCount                     = 0;
-    AcpiSciCount                        = 0;
-    AcpiGpeCount                        = 0;
-
-    for (i = 0; i < ACPI_NUM_FIXED_EVENTS; i++)
-    {
-        AcpiFixedEventCount[i]              = 0;
-    }
-
-#if (!ACPI_REDUCED_HARDWARE)
-
-    /* GPE/SCI support */
-
-    AcpiGbl_AllGpesInitialized          = FALSE;
-    AcpiGbl_GpeXruptListHead            = NULL;
-    AcpiGbl_GpeFadtBlocks[0]            = NULL;
-    AcpiGbl_GpeFadtBlocks[1]            = NULL;
-    AcpiCurrentGpeCount                 = 0;
-
-    AcpiGbl_GlobalEventHandler          = NULL;
-    AcpiGbl_SciHandlerList              = NULL;
-
-#endif /* !ACPI_REDUCED_HARDWARE */
-
-    /* Global handlers */
-
-    AcpiGbl_GlobalNotify[0].Handler     = NULL;
-    AcpiGbl_GlobalNotify[1].Handler     = NULL;
-    AcpiGbl_ExceptionHandler            = NULL;
-    AcpiGbl_InitHandler                 = NULL;
-    AcpiGbl_TableHandler                = NULL;
-    AcpiGbl_InterfaceHandler            = NULL;
-
-    /* Global Lock support */
-
-    AcpiGbl_GlobalLockSemaphore         = ACPI_SEMAPHORE_NULL;
-    AcpiGbl_GlobalLockMutex             = NULL;
-    AcpiGbl_GlobalLockAcquired          = FALSE;
-    AcpiGbl_GlobalLockHandle            = 0;
-    AcpiGbl_GlobalLockPresent           = FALSE;
-
-    /* Miscellaneous variables */
-
-    AcpiGbl_DSDT                        = NULL;
-    AcpiGbl_CmSingleStep                = FALSE;
-    AcpiGbl_Shutdown                    = FALSE;
-    AcpiGbl_NsLookupCount               = 0;
-    AcpiGbl_PsFindCount                 = 0;
-    AcpiGbl_AcpiHardwarePresent         = TRUE;
-    AcpiGbl_LastOwnerIdIndex            = 0;
-    AcpiGbl_NextOwnerIdOffset           = 0;
-    AcpiGbl_DebuggerConfiguration       = DEBUGGER_THREADING;
-    AcpiGbl_OsiMutex                    = NULL;
-
-    /* Hardware oriented */
-
-    AcpiGbl_EventsInitialized           = FALSE;
-    AcpiGbl_SystemAwakeAndRunning       = TRUE;
-
-    /* Namespace */
-
-    AcpiGbl_RootNode                    = NULL;
-    AcpiGbl_RootNodeStruct.Name.Integer = ACPI_ROOT_NAME;
-    AcpiGbl_RootNodeStruct.DescriptorType = ACPI_DESC_TYPE_NAMED;
-    AcpiGbl_RootNodeStruct.Type         = ACPI_TYPE_DEVICE;
-    AcpiGbl_RootNodeStruct.Parent       = NULL;
-    AcpiGbl_RootNodeStruct.Child        = NULL;
-    AcpiGbl_RootNodeStruct.Peer         = NULL;
-    AcpiGbl_RootNodeStruct.Object       = NULL;
-
-
-#ifdef ACPI_DISASSEMBLER
-    AcpiGbl_ExternalList                = NULL;
-    AcpiGbl_NumExternalMethods          = 0;
-    AcpiGbl_ResolvedExternalMethods     = 0;
-#endif
-
-#ifdef ACPI_DEBUG_OUTPUT
-    AcpiGbl_LowestStackPointer          = ACPI_CAST_PTR (ACPI_SIZE, ACPI_SIZE_MAX);
-#endif
-
-#ifdef ACPI_DBG_TRACK_ALLOCATIONS
-    AcpiGbl_DisplayFinalMemStats        = FALSE;
-    AcpiGbl_DisableMemTracking          = FALSE;
-#endif
-
+    ACPI_FREE (GpeXrupt);
     return_ACPI_STATUS (AE_OK);
 }
 
 
-/******************************************************************************
- *
- * FUNCTION:    AcpiUtTerminate
- *
- * PARAMETERS:  none
- *
- * RETURN:      none
- *
- * DESCRIPTION: Free global memory
- *
- ******************************************************************************/
-
-static void
-AcpiUtTerminate (
-    void)
-{
-    ACPI_FUNCTION_TRACE (UtTerminate);
-
-    AcpiUtFreeGpeLists ();
-    AcpiUtDeleteAddressLists ();
-    return_VOID;
-}
-
-#ifdef ACPI_INIT_OBJS
-
 /*******************************************************************************
  *
- * FUNCTION:    AcpiUtSubsystemShutdown
+ * FUNCTION:    AcpiEvDeleteGpeHandlers
  *
- * PARAMETERS:  None
+ * PARAMETERS:  GpeXruptInfo        - GPE Interrupt info
+ *              GpeBlock            - Gpe Block info
  *
- * RETURN:      None
+ * RETURN:      Status
  *
- * DESCRIPTION: Shutdown the various components. Do not delete the mutex
- *              objects here, because the AML debugger may be still running.
+ * DESCRIPTION: Delete all Handler objects found in the GPE data structs.
+ *              Used only prior to termination.
  *
  ******************************************************************************/
 
-void
-AcpiUtSubsystemShutdown (
-    void)
+ACPI_STATUS
+AcpiEvDeleteGpeHandlers (
+    ACPI_GPE_XRUPT_INFO     *GpeXruptInfo,
+    ACPI_GPE_BLOCK_INFO     *GpeBlock,
+    void                    *Context)
 {
-    ACPI_FUNCTION_TRACE (UtSubsystemShutdown);
+    ACPI_GPE_EVENT_INFO     *GpeEventInfo;
+    ACPI_GPE_NOTIFY_INFO    *Notify;
+    ACPI_GPE_NOTIFY_INFO    *Next;
+    UINT32                  i;
+    UINT32                  j;
 
 
-    /* Just exit if subsystem is already shutdown */
+    ACPI_FUNCTION_TRACE (EvDeleteGpeHandlers);
 
-    if (AcpiGbl_Shutdown)
+
+    /* Examine each GPE Register within the block */
+
+    for (i = 0; i < GpeBlock->RegisterCount; i++)
     {
-        ACPI_ERROR ((AE_INFO, "ACPI Subsystem is already terminated"));
-        return_VOID;
+        /* Now look at the individual GPEs in this byte register */
+
+        for (j = 0; j < ACPI_GPE_REGISTER_WIDTH; j++)
+        {
+            GpeEventInfo = &GpeBlock->EventInfo[((ACPI_SIZE) i *
+                ACPI_GPE_REGISTER_WIDTH) + j];
+
+            if ((ACPI_GPE_DISPATCH_TYPE (GpeEventInfo->Flags) ==
+                    ACPI_GPE_DISPATCH_HANDLER) ||
+                (ACPI_GPE_DISPATCH_TYPE (GpeEventInfo->Flags) ==
+                    ACPI_GPE_DISPATCH_RAW_HANDLER))
+            {
+                /* Delete an installed handler block */
+
+                ACPI_FREE (GpeEventInfo->Dispatch.Handler);
+                GpeEventInfo->Dispatch.Handler = NULL;
+                GpeEventInfo->Flags &= ~ACPI_GPE_DISPATCH_MASK;
+            }
+            else if (ACPI_GPE_DISPATCH_TYPE (GpeEventInfo->Flags) ==
+                ACPI_GPE_DISPATCH_NOTIFY)
+            {
+                /* Delete the implicit notification device list */
+
+                Notify = GpeEventInfo->Dispatch.NotifyList;
+                while (Notify)
+                {
+                    Next = Notify->Next;
+                    ACPI_FREE (Notify);
+                    Notify = Next;
+                }
+
+                GpeEventInfo->Dispatch.NotifyList = NULL;
+                GpeEventInfo->Flags &= ~ACPI_GPE_DISPATCH_MASK;
+            }
+        }
     }
 
-    /* Subsystem appears active, go ahead and shut it down */
-
-    AcpiGbl_Shutdown = TRUE;
-    AcpiGbl_StartupFlags = 0;
-    ACPI_DEBUG_PRINT ((ACPI_DB_INFO, "Shutting down ACPI Subsystem\n"));
-
-#ifndef ACPI_ASL_COMPILER
-
-    /* Close the AcpiEvent Handling */
-
-    AcpiEvTerminate ();
-
-    /* Delete any dynamic _OSI interfaces */
-
-    AcpiUtInterfaceTerminate ();
-#endif
-
-    /* Close the Namespace */
-
-    AcpiNsTerminate ();
-
-    /* Delete the ACPI tables */
-
-    AcpiTbTerminate ();
-
-    /* Close the globals */
-
-    AcpiUtTerminate ();
-
-    /* Purge the local caches */
-
-    (void) AcpiUtDeleteCaches ();
-    return_VOID;
+    return_ACPI_STATUS (AE_OK);
 }
 
-#endif /* ACPI_INIT_OBJS */
+#endif /* !ACPI_REDUCED_HARDWARE */

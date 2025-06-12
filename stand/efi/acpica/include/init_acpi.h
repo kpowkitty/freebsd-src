@@ -26,6 +26,13 @@
 #ifndef INIT_ACPI_H
 #define INIT_ACPI_H
 
+/* EFI lib */
+#include <efi.h>
+#include <efilib.h>
+
+extern EFI_GUID acpi; 
+extern EFI_GUID acpi20; 
+
 ACPI_STATUS acpi_Startup(void);
 int acpi_identify(void);
 

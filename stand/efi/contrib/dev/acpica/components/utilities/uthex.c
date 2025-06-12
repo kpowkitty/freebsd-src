@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Module Name: utinit - Common ACPI subsystem initialization
+ * Module Name: uthex -- Hex/ASCII support functions
  *
  *****************************************************************************/
 
@@ -151,312 +151,114 @@
 
 #include <acpi.h>
 #include <accommon.h>
-#include <acnamesp.h>
-#include <acevents.h>
-#include <actables.h>
 
-#define _COMPONENT          ACPI_UTILITIES
-        ACPI_MODULE_NAME    ("utinit")
-
-/* Local prototypes */
-
-static void AcpiUtTerminate (
-    void);
-
-#if (!ACPI_REDUCED_HARDWARE)
-
-static void
-AcpiUtFreeGpeLists (
-    void);
-
-#else
-
-#define AcpiUtFreeGpeLists()
-#endif /* !ACPI_REDUCED_HARDWARE */
+#define _COMPONENT          ACPI_COMPILER
+        ACPI_MODULE_NAME    ("uthex")
 
 
-#if (!ACPI_REDUCED_HARDWARE)
-/******************************************************************************
- *
- * FUNCTION:    AcpiUtFreeGpeLists
- *
- * PARAMETERS:  none
- *
- * RETURN:      none
- *
- * DESCRIPTION: Free global GPE lists
- *
- ******************************************************************************/
+/* Hex to ASCII conversion table */
 
-static void
-AcpiUtFreeGpeLists (
-    void)
+static const char           AcpiGbl_HexToAscii[] =
 {
-    ACPI_GPE_BLOCK_INFO     *GpeBlock;
-    ACPI_GPE_BLOCK_INFO     *NextGpeBlock;
-    ACPI_GPE_XRUPT_INFO     *GpeXruptInfo;
-    ACPI_GPE_XRUPT_INFO     *NextGpeXruptInfo;
-
-
-    /* Free global GPE blocks and related info structures */
-
-    GpeXruptInfo = AcpiGbl_GpeXruptListHead;
-    while (GpeXruptInfo)
-    {
-        GpeBlock = GpeXruptInfo->GpeBlockListHead;
-        while (GpeBlock)
-        {
-            NextGpeBlock = GpeBlock->Next;
-            ACPI_FREE (GpeBlock->EventInfo);
-            ACPI_FREE (GpeBlock->RegisterInfo);
-            ACPI_FREE (GpeBlock);
-
-            GpeBlock = NextGpeBlock;
-        }
-        NextGpeXruptInfo = GpeXruptInfo->Next;
-        ACPI_FREE (GpeXruptInfo);
-        GpeXruptInfo = NextGpeXruptInfo;
-    }
-}
-#endif /* !ACPI_REDUCED_HARDWARE */
+    '0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'
+};
 
 
 /*******************************************************************************
  *
- * FUNCTION:    AcpiUtInitGlobals
+ * FUNCTION:    AcpiUtHexToAsciiChar
  *
- * PARAMETERS:  None
+ * PARAMETERS:  Integer             - Contains the hex digit
+ *              Position            - bit position of the digit within the
+ *                                    integer (multiple of 4)
  *
- * RETURN:      Status
+ * RETURN:      The converted Ascii character
  *
- * DESCRIPTION: Initialize ACPICA globals. All globals that require specific
- *              initialization should be initialized here. This allows for
- *              a warm restart.
+ * DESCRIPTION: Convert a hex digit to an Ascii character
+ *
+ ******************************************************************************/
+
+char
+AcpiUtHexToAsciiChar (
+    UINT64                  Integer,
+    UINT32                  Position)
+{
+    UINT64                  Index;
+
+    AcpiUtShortShiftRight (Integer, Position, &Index);
+    return (AcpiGbl_HexToAscii[Index & 0xF]);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiUtAsciiToHexByte
+ *
+ * PARAMETERS:  TwoAsciiChars               - Pointer to two ASCII characters
+ *              ReturnByte                  - Where converted byte is returned
+ *
+ * RETURN:      Status and converted hex byte
+ *
+ * DESCRIPTION: Perform ascii-to-hex translation, exactly two ASCII characters
+ *              to a single converted byte value.
  *
  ******************************************************************************/
 
 ACPI_STATUS
-AcpiUtInitGlobals (
-    void)
+AcpiUtAsciiToHexByte (
+    char                    *TwoAsciiChars,
+    UINT8                   *ReturnByte)
 {
-    ACPI_STATUS             Status;
-    UINT32                  i;
 
+    /* Both ASCII characters must be valid hex digits */
 
-    ACPI_FUNCTION_TRACE (UtInitGlobals);
-
-
-    /* Create all memory caches */
-
-    Status = AcpiUtCreateCaches ();
-    if (ACPI_FAILURE (Status))
+    if (!isxdigit ((int) TwoAsciiChars[0]) ||
+        !isxdigit ((int) TwoAsciiChars[1]))
     {
-        return_ACPI_STATUS (Status);
+        return (AE_BAD_HEX_CONSTANT);
     }
 
-    /* Address Range lists */
+    *ReturnByte =
+        AcpiUtAsciiCharToHex (TwoAsciiChars[1]) |
+        (AcpiUtAsciiCharToHex (TwoAsciiChars[0]) << 4);
 
-    for (i = 0; i < ACPI_ADDRESS_RANGE_MAX; i++)
-    {
-        AcpiGbl_AddressRangeList[i] = NULL;
-    }
-
-    /* Mutex locked flags */
-
-    for (i = 0; i < ACPI_NUM_MUTEX; i++)
-    {
-        AcpiGbl_MutexInfo[i].Mutex          = NULL;
-        AcpiGbl_MutexInfo[i].ThreadId       = ACPI_MUTEX_NOT_ACQUIRED;
-        AcpiGbl_MutexInfo[i].UseCount       = 0;
-    }
-
-    for (i = 0; i < ACPI_NUM_OWNERID_MASKS; i++)
-    {
-        AcpiGbl_OwnerIdMask[i]              = 0;
-    }
-
-    /* Last OwnerID is never valid */
-
-    AcpiGbl_OwnerIdMask[ACPI_NUM_OWNERID_MASKS - 1] = 0x80000000;
-
-    /* Event counters */
-
-    AcpiMethodCount                     = 0;
-    AcpiSciCount                        = 0;
-    AcpiGpeCount                        = 0;
-
-    for (i = 0; i < ACPI_NUM_FIXED_EVENTS; i++)
-    {
-        AcpiFixedEventCount[i]              = 0;
-    }
-
-#if (!ACPI_REDUCED_HARDWARE)
-
-    /* GPE/SCI support */
-
-    AcpiGbl_AllGpesInitialized          = FALSE;
-    AcpiGbl_GpeXruptListHead            = NULL;
-    AcpiGbl_GpeFadtBlocks[0]            = NULL;
-    AcpiGbl_GpeFadtBlocks[1]            = NULL;
-    AcpiCurrentGpeCount                 = 0;
-
-    AcpiGbl_GlobalEventHandler          = NULL;
-    AcpiGbl_SciHandlerList              = NULL;
-
-#endif /* !ACPI_REDUCED_HARDWARE */
-
-    /* Global handlers */
-
-    AcpiGbl_GlobalNotify[0].Handler     = NULL;
-    AcpiGbl_GlobalNotify[1].Handler     = NULL;
-    AcpiGbl_ExceptionHandler            = NULL;
-    AcpiGbl_InitHandler                 = NULL;
-    AcpiGbl_TableHandler                = NULL;
-    AcpiGbl_InterfaceHandler            = NULL;
-
-    /* Global Lock support */
-
-    AcpiGbl_GlobalLockSemaphore         = ACPI_SEMAPHORE_NULL;
-    AcpiGbl_GlobalLockMutex             = NULL;
-    AcpiGbl_GlobalLockAcquired          = FALSE;
-    AcpiGbl_GlobalLockHandle            = 0;
-    AcpiGbl_GlobalLockPresent           = FALSE;
-
-    /* Miscellaneous variables */
-
-    AcpiGbl_DSDT                        = NULL;
-    AcpiGbl_CmSingleStep                = FALSE;
-    AcpiGbl_Shutdown                    = FALSE;
-    AcpiGbl_NsLookupCount               = 0;
-    AcpiGbl_PsFindCount                 = 0;
-    AcpiGbl_AcpiHardwarePresent         = TRUE;
-    AcpiGbl_LastOwnerIdIndex            = 0;
-    AcpiGbl_NextOwnerIdOffset           = 0;
-    AcpiGbl_DebuggerConfiguration       = DEBUGGER_THREADING;
-    AcpiGbl_OsiMutex                    = NULL;
-
-    /* Hardware oriented */
-
-    AcpiGbl_EventsInitialized           = FALSE;
-    AcpiGbl_SystemAwakeAndRunning       = TRUE;
-
-    /* Namespace */
-
-    AcpiGbl_RootNode                    = NULL;
-    AcpiGbl_RootNodeStruct.Name.Integer = ACPI_ROOT_NAME;
-    AcpiGbl_RootNodeStruct.DescriptorType = ACPI_DESC_TYPE_NAMED;
-    AcpiGbl_RootNodeStruct.Type         = ACPI_TYPE_DEVICE;
-    AcpiGbl_RootNodeStruct.Parent       = NULL;
-    AcpiGbl_RootNodeStruct.Child        = NULL;
-    AcpiGbl_RootNodeStruct.Peer         = NULL;
-    AcpiGbl_RootNodeStruct.Object       = NULL;
-
-
-#ifdef ACPI_DISASSEMBLER
-    AcpiGbl_ExternalList                = NULL;
-    AcpiGbl_NumExternalMethods          = 0;
-    AcpiGbl_ResolvedExternalMethods     = 0;
-#endif
-
-#ifdef ACPI_DEBUG_OUTPUT
-    AcpiGbl_LowestStackPointer          = ACPI_CAST_PTR (ACPI_SIZE, ACPI_SIZE_MAX);
-#endif
-
-#ifdef ACPI_DBG_TRACK_ALLOCATIONS
-    AcpiGbl_DisplayFinalMemStats        = FALSE;
-    AcpiGbl_DisableMemTracking          = FALSE;
-#endif
-
-    return_ACPI_STATUS (AE_OK);
+    return (AE_OK);
 }
 
-
-/******************************************************************************
- *
- * FUNCTION:    AcpiUtTerminate
- *
- * PARAMETERS:  none
- *
- * RETURN:      none
- *
- * DESCRIPTION: Free global memory
- *
- ******************************************************************************/
-
-static void
-AcpiUtTerminate (
-    void)
-{
-    ACPI_FUNCTION_TRACE (UtTerminate);
-
-    AcpiUtFreeGpeLists ();
-    AcpiUtDeleteAddressLists ();
-    return_VOID;
-}
-
-#ifdef ACPI_INIT_OBJS
 
 /*******************************************************************************
  *
- * FUNCTION:    AcpiUtSubsystemShutdown
+ * FUNCTION:    AcpiUtAsciiCharToHex
  *
- * PARAMETERS:  None
+ * PARAMETERS:  HexChar                 - Hex character in Ascii. Must be:
+ *                                        0-9 or A-F or a-f
  *
- * RETURN:      None
+ * RETURN:      The binary value of the ascii/hex character
  *
- * DESCRIPTION: Shutdown the various components. Do not delete the mutex
- *              objects here, because the AML debugger may be still running.
+ * DESCRIPTION: Perform ascii-to-hex translation
  *
  ******************************************************************************/
 
-void
-AcpiUtSubsystemShutdown (
-    void)
+UINT8
+AcpiUtAsciiCharToHex (
+    int                     HexChar)
 {
-    ACPI_FUNCTION_TRACE (UtSubsystemShutdown);
 
+    /* Values 0-9 */
 
-    /* Just exit if subsystem is already shutdown */
-
-    if (AcpiGbl_Shutdown)
+    if (HexChar <= '9')
     {
-        ACPI_ERROR ((AE_INFO, "ACPI Subsystem is already terminated"));
-        return_VOID;
+        return ((UINT8) (HexChar - '0'));
     }
 
-    /* Subsystem appears active, go ahead and shut it down */
+    /* Upper case A-F */
 
-    AcpiGbl_Shutdown = TRUE;
-    AcpiGbl_StartupFlags = 0;
-    ACPI_DEBUG_PRINT ((ACPI_DB_INFO, "Shutting down ACPI Subsystem\n"));
+    if (HexChar <= 'F')
+    {
+        return ((UINT8) (HexChar - 0x37));
+    }
 
-#ifndef ACPI_ASL_COMPILER
+    /* Lower case a-f */
 
-    /* Close the AcpiEvent Handling */
-
-    AcpiEvTerminate ();
-
-    /* Delete any dynamic _OSI interfaces */
-
-    AcpiUtInterfaceTerminate ();
-#endif
-
-    /* Close the Namespace */
-
-    AcpiNsTerminate ();
-
-    /* Delete the ACPI tables */
-
-    AcpiTbTerminate ();
-
-    /* Close the globals */
-
-    AcpiUtTerminate ();
-
-    /* Purge the local caches */
-
-    (void) AcpiUtDeleteCaches ();
-    return_VOID;
+    return ((UINT8) (HexChar - 0x57));
 }
-
-#endif /* ACPI_INIT_OBJS */

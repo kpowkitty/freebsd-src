@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Module Name: utinit - Common ACPI subsystem initialization
+ * Module Name: acparser.h - AML Parser subcomponent prototypes and defines
  *
  *****************************************************************************/
 
@@ -149,314 +149,328 @@
  *
  *****************************************************************************/
 
-#include <acpi.h>
-#include <accommon.h>
-#include <acnamesp.h>
-#include <acevents.h>
-#include <actables.h>
-
-#define _COMPONENT          ACPI_UTILITIES
-        ACPI_MODULE_NAME    ("utinit")
-
-/* Local prototypes */
-
-static void AcpiUtTerminate (
-    void);
-
-#if (!ACPI_REDUCED_HARDWARE)
-
-static void
-AcpiUtFreeGpeLists (
-    void);
-
-#else
-
-#define AcpiUtFreeGpeLists()
-#endif /* !ACPI_REDUCED_HARDWARE */
+#ifndef __ACPARSER_H__
+#define __ACPARSER_H__
 
 
-#if (!ACPI_REDUCED_HARDWARE)
+#define OP_HAS_RETURN_VALUE             1
+
+/* Variable number of arguments. This field must be 32 bits */
+
+#define ACPI_VAR_ARGS                   ACPI_UINT32_MAX
+
+
+#define ACPI_PARSE_DELETE_TREE          0x0001
+#define ACPI_PARSE_NO_TREE_DELETE       0x0000
+#define ACPI_PARSE_TREE_MASK            0x0001
+
+#define ACPI_PARSE_LOAD_PASS1           0x0010
+#define ACPI_PARSE_LOAD_PASS2           0x0020
+#define ACPI_PARSE_EXECUTE              0x0030
+#define ACPI_PARSE_MODE_MASK            0x0030
+
+#define ACPI_PARSE_DEFERRED_OP          0x0100
+#define ACPI_PARSE_DISASSEMBLE          0x0200
+
+#define ACPI_PARSE_MODULE_LEVEL         0x0400
+
 /******************************************************************************
  *
- * FUNCTION:    AcpiUtFreeGpeLists
+ * Parser interfaces
  *
- * PARAMETERS:  none
- *
- * RETURN:      none
- *
- * DESCRIPTION: Free global GPE lists
- *
- ******************************************************************************/
+ *****************************************************************************/
 
-static void
-AcpiUtFreeGpeLists (
-    void)
-{
-    ACPI_GPE_BLOCK_INFO     *GpeBlock;
-    ACPI_GPE_BLOCK_INFO     *NextGpeBlock;
-    ACPI_GPE_XRUPT_INFO     *GpeXruptInfo;
-    ACPI_GPE_XRUPT_INFO     *NextGpeXruptInfo;
+extern const UINT8      AcpiGbl_ShortOpIndex[];
+extern const UINT8      AcpiGbl_LongOpIndex[];
 
 
-    /* Free global GPE blocks and related info structures */
-
-    GpeXruptInfo = AcpiGbl_GpeXruptListHead;
-    while (GpeXruptInfo)
-    {
-        GpeBlock = GpeXruptInfo->GpeBlockListHead;
-        while (GpeBlock)
-        {
-            NextGpeBlock = GpeBlock->Next;
-            ACPI_FREE (GpeBlock->EventInfo);
-            ACPI_FREE (GpeBlock->RegisterInfo);
-            ACPI_FREE (GpeBlock);
-
-            GpeBlock = NextGpeBlock;
-        }
-        NextGpeXruptInfo = GpeXruptInfo->Next;
-        ACPI_FREE (GpeXruptInfo);
-        GpeXruptInfo = NextGpeXruptInfo;
-    }
-}
-#endif /* !ACPI_REDUCED_HARDWARE */
-
-
-/*******************************************************************************
- *
- * FUNCTION:    AcpiUtInitGlobals
- *
- * PARAMETERS:  None
- *
- * RETURN:      Status
- *
- * DESCRIPTION: Initialize ACPICA globals. All globals that require specific
- *              initialization should be initialized here. This allows for
- *              a warm restart.
- *
- ******************************************************************************/
+/*
+ * psxface - Parser external interfaces
+ */
+ACPI_STATUS
+AcpiPsExecuteMethod (
+    ACPI_EVALUATE_INFO      *Info);
 
 ACPI_STATUS
-AcpiUtInitGlobals (
-    void)
-{
-    ACPI_STATUS             Status;
-    UINT32                  i;
+AcpiPsExecuteTable (
+    ACPI_EVALUATE_INFO      *Info);
 
 
-    ACPI_FUNCTION_TRACE (UtInitGlobals);
+/*
+ * psargs - Parse AML opcode arguments
+ */
+UINT8 *
+AcpiPsGetNextPackageEnd (
+    ACPI_PARSE_STATE        *ParserState);
 
-
-    /* Create all memory caches */
-
-    Status = AcpiUtCreateCaches ();
-    if (ACPI_FAILURE (Status))
-    {
-        return_ACPI_STATUS (Status);
-    }
-
-    /* Address Range lists */
-
-    for (i = 0; i < ACPI_ADDRESS_RANGE_MAX; i++)
-    {
-        AcpiGbl_AddressRangeList[i] = NULL;
-    }
-
-    /* Mutex locked flags */
-
-    for (i = 0; i < ACPI_NUM_MUTEX; i++)
-    {
-        AcpiGbl_MutexInfo[i].Mutex          = NULL;
-        AcpiGbl_MutexInfo[i].ThreadId       = ACPI_MUTEX_NOT_ACQUIRED;
-        AcpiGbl_MutexInfo[i].UseCount       = 0;
-    }
-
-    for (i = 0; i < ACPI_NUM_OWNERID_MASKS; i++)
-    {
-        AcpiGbl_OwnerIdMask[i]              = 0;
-    }
-
-    /* Last OwnerID is never valid */
-
-    AcpiGbl_OwnerIdMask[ACPI_NUM_OWNERID_MASKS - 1] = 0x80000000;
-
-    /* Event counters */
-
-    AcpiMethodCount                     = 0;
-    AcpiSciCount                        = 0;
-    AcpiGpeCount                        = 0;
-
-    for (i = 0; i < ACPI_NUM_FIXED_EVENTS; i++)
-    {
-        AcpiFixedEventCount[i]              = 0;
-    }
-
-#if (!ACPI_REDUCED_HARDWARE)
-
-    /* GPE/SCI support */
-
-    AcpiGbl_AllGpesInitialized          = FALSE;
-    AcpiGbl_GpeXruptListHead            = NULL;
-    AcpiGbl_GpeFadtBlocks[0]            = NULL;
-    AcpiGbl_GpeFadtBlocks[1]            = NULL;
-    AcpiCurrentGpeCount                 = 0;
-
-    AcpiGbl_GlobalEventHandler          = NULL;
-    AcpiGbl_SciHandlerList              = NULL;
-
-#endif /* !ACPI_REDUCED_HARDWARE */
-
-    /* Global handlers */
-
-    AcpiGbl_GlobalNotify[0].Handler     = NULL;
-    AcpiGbl_GlobalNotify[1].Handler     = NULL;
-    AcpiGbl_ExceptionHandler            = NULL;
-    AcpiGbl_InitHandler                 = NULL;
-    AcpiGbl_TableHandler                = NULL;
-    AcpiGbl_InterfaceHandler            = NULL;
-
-    /* Global Lock support */
-
-    AcpiGbl_GlobalLockSemaphore         = ACPI_SEMAPHORE_NULL;
-    AcpiGbl_GlobalLockMutex             = NULL;
-    AcpiGbl_GlobalLockAcquired          = FALSE;
-    AcpiGbl_GlobalLockHandle            = 0;
-    AcpiGbl_GlobalLockPresent           = FALSE;
-
-    /* Miscellaneous variables */
-
-    AcpiGbl_DSDT                        = NULL;
-    AcpiGbl_CmSingleStep                = FALSE;
-    AcpiGbl_Shutdown                    = FALSE;
-    AcpiGbl_NsLookupCount               = 0;
-    AcpiGbl_PsFindCount                 = 0;
-    AcpiGbl_AcpiHardwarePresent         = TRUE;
-    AcpiGbl_LastOwnerIdIndex            = 0;
-    AcpiGbl_NextOwnerIdOffset           = 0;
-    AcpiGbl_DebuggerConfiguration       = DEBUGGER_THREADING;
-    AcpiGbl_OsiMutex                    = NULL;
-
-    /* Hardware oriented */
-
-    AcpiGbl_EventsInitialized           = FALSE;
-    AcpiGbl_SystemAwakeAndRunning       = TRUE;
-
-    /* Namespace */
-
-    AcpiGbl_RootNode                    = NULL;
-    AcpiGbl_RootNodeStruct.Name.Integer = ACPI_ROOT_NAME;
-    AcpiGbl_RootNodeStruct.DescriptorType = ACPI_DESC_TYPE_NAMED;
-    AcpiGbl_RootNodeStruct.Type         = ACPI_TYPE_DEVICE;
-    AcpiGbl_RootNodeStruct.Parent       = NULL;
-    AcpiGbl_RootNodeStruct.Child        = NULL;
-    AcpiGbl_RootNodeStruct.Peer         = NULL;
-    AcpiGbl_RootNodeStruct.Object       = NULL;
-
-
-#ifdef ACPI_DISASSEMBLER
-    AcpiGbl_ExternalList                = NULL;
-    AcpiGbl_NumExternalMethods          = 0;
-    AcpiGbl_ResolvedExternalMethods     = 0;
-#endif
-
-#ifdef ACPI_DEBUG_OUTPUT
-    AcpiGbl_LowestStackPointer          = ACPI_CAST_PTR (ACPI_SIZE, ACPI_SIZE_MAX);
-#endif
-
-#ifdef ACPI_DBG_TRACK_ALLOCATIONS
-    AcpiGbl_DisplayFinalMemStats        = FALSE;
-    AcpiGbl_DisableMemTracking          = FALSE;
-#endif
-
-    return_ACPI_STATUS (AE_OK);
-}
-
-
-/******************************************************************************
- *
- * FUNCTION:    AcpiUtTerminate
- *
- * PARAMETERS:  none
- *
- * RETURN:      none
- *
- * DESCRIPTION: Free global memory
- *
- ******************************************************************************/
-
-static void
-AcpiUtTerminate (
-    void)
-{
-    ACPI_FUNCTION_TRACE (UtTerminate);
-
-    AcpiUtFreeGpeLists ();
-    AcpiUtDeleteAddressLists ();
-    return_VOID;
-}
-
-#ifdef ACPI_INIT_OBJS
-
-/*******************************************************************************
- *
- * FUNCTION:    AcpiUtSubsystemShutdown
- *
- * PARAMETERS:  None
- *
- * RETURN:      None
- *
- * DESCRIPTION: Shutdown the various components. Do not delete the mutex
- *              objects here, because the AML debugger may be still running.
- *
- ******************************************************************************/
+char *
+AcpiPsGetNextNamestring (
+    ACPI_PARSE_STATE        *ParserState);
 
 void
-AcpiUtSubsystemShutdown (
-    void)
-{
-    ACPI_FUNCTION_TRACE (UtSubsystemShutdown);
+AcpiPsGetNextSimpleArg (
+    ACPI_PARSE_STATE        *ParserState,
+    UINT32                  ArgType,
+    ACPI_PARSE_OBJECT       *Arg);
+
+ACPI_STATUS
+AcpiPsGetNextNamepath (
+    ACPI_WALK_STATE         *WalkState,
+    ACPI_PARSE_STATE        *ParserState,
+    ACPI_PARSE_OBJECT       *Arg,
+    BOOLEAN                 PossibleMethodCall);
+
+/* Values for BOOLEAN above */
+
+#define ACPI_NOT_METHOD_CALL            FALSE
+#define ACPI_POSSIBLE_METHOD_CALL       TRUE
+
+ACPI_STATUS
+AcpiPsGetNextArg (
+    ACPI_WALK_STATE         *WalkState,
+    ACPI_PARSE_STATE        *ParserState,
+    UINT32                  ArgType,
+    ACPI_PARSE_OBJECT       **ReturnArg);
 
 
-    /* Just exit if subsystem is already shutdown */
+/*
+ * psfind
+ */
+ACPI_PARSE_OBJECT *
+AcpiPsFindName (
+    ACPI_PARSE_OBJECT       *Scope,
+    UINT32                  Name,
+    UINT32                  Opcode);
 
-    if (AcpiGbl_Shutdown)
-    {
-        ACPI_ERROR ((AE_INFO, "ACPI Subsystem is already terminated"));
-        return_VOID;
-    }
+ACPI_PARSE_OBJECT*
+AcpiPsGetParent (
+    ACPI_PARSE_OBJECT       *Op);
 
-    /* Subsystem appears active, go ahead and shut it down */
 
-    AcpiGbl_Shutdown = TRUE;
-    AcpiGbl_StartupFlags = 0;
-    ACPI_DEBUG_PRINT ((ACPI_DB_INFO, "Shutting down ACPI Subsystem\n"));
+/*
+ * psobject - support for parse object processing
+ */
+ACPI_STATUS
+AcpiPsBuildNamedOp (
+    ACPI_WALK_STATE         *WalkState,
+    UINT8                   *AmlOpStart,
+    ACPI_PARSE_OBJECT       *UnnamedOp,
+    ACPI_PARSE_OBJECT       **Op);
 
-#ifndef ACPI_ASL_COMPILER
+ACPI_STATUS
+AcpiPsCreateOp (
+    ACPI_WALK_STATE         *WalkState,
+    UINT8                   *AmlOpStart,
+    ACPI_PARSE_OBJECT       **NewOp);
 
-    /* Close the AcpiEvent Handling */
+ACPI_STATUS
+AcpiPsCompleteOp (
+    ACPI_WALK_STATE         *WalkState,
+    ACPI_PARSE_OBJECT       **Op,
+    ACPI_STATUS             Status);
 
-    AcpiEvTerminate ();
+ACPI_STATUS
+AcpiPsCompleteFinalOp (
+    ACPI_WALK_STATE         *WalkState,
+    ACPI_PARSE_OBJECT       *Op,
+    ACPI_STATUS             Status);
 
-    /* Delete any dynamic _OSI interfaces */
 
-    AcpiUtInterfaceTerminate ();
-#endif
+/*
+ * psopinfo - AML Opcode information
+ */
+const ACPI_OPCODE_INFO *
+AcpiPsGetOpcodeInfo (
+    UINT16                  Opcode);
 
-    /* Close the Namespace */
+const char *
+AcpiPsGetOpcodeName (
+    UINT16                  Opcode);
 
-    AcpiNsTerminate ();
+UINT8
+AcpiPsGetArgumentCount (
+    UINT32                  OpType);
 
-    /* Delete the ACPI tables */
 
-    AcpiTbTerminate ();
+/*
+ * psparse - top level parsing routines
+ */
+ACPI_STATUS
+AcpiPsParseAml (
+    ACPI_WALK_STATE         *WalkState);
 
-    /* Close the globals */
+UINT32
+AcpiPsGetOpcodeSize (
+    UINT32                  Opcode);
 
-    AcpiUtTerminate ();
+UINT16
+AcpiPsPeekOpcode (
+    ACPI_PARSE_STATE        *state);
 
-    /* Purge the local caches */
+ACPI_STATUS
+AcpiPsCompleteThisOp (
+    ACPI_WALK_STATE         *WalkState,
+    ACPI_PARSE_OBJECT       *Op);
 
-    (void) AcpiUtDeleteCaches ();
-    return_VOID;
-}
+ACPI_STATUS
+AcpiPsNextParseState (
+    ACPI_WALK_STATE         *WalkState,
+    ACPI_PARSE_OBJECT       *Op,
+    ACPI_STATUS             CallbackStatus);
 
-#endif /* ACPI_INIT_OBJS */
+
+/*
+ * psloop - main parse loop
+ */
+ACPI_STATUS
+AcpiPsParseLoop (
+    ACPI_WALK_STATE         *WalkState);
+
+
+/*
+ * psscope - Scope stack management routines
+ */
+ACPI_STATUS
+AcpiPsInitScope (
+    ACPI_PARSE_STATE        *ParserState,
+    ACPI_PARSE_OBJECT       *Root);
+
+ACPI_PARSE_OBJECT *
+AcpiPsGetParentScope (
+    ACPI_PARSE_STATE        *state);
+
+BOOLEAN
+AcpiPsHasCompletedScope (
+    ACPI_PARSE_STATE        *ParserState);
+
+void
+AcpiPsPopScope (
+    ACPI_PARSE_STATE        *ParserState,
+    ACPI_PARSE_OBJECT       **Op,
+    UINT32                  *ArgList,
+    UINT32                  *ArgCount);
+
+ACPI_STATUS
+AcpiPsPushScope (
+    ACPI_PARSE_STATE        *ParserState,
+    ACPI_PARSE_OBJECT       *Op,
+    UINT32                  RemainingArgs,
+    UINT32                  ArgCount);
+
+void
+AcpiPsCleanupScope (
+    ACPI_PARSE_STATE        *state);
+
+
+/*
+ * pstree - parse tree manipulation routines
+ */
+void
+AcpiPsAppendArg(
+    ACPI_PARSE_OBJECT       *op,
+    ACPI_PARSE_OBJECT       *arg);
+
+ACPI_PARSE_OBJECT*
+AcpiPsFind (
+    ACPI_PARSE_OBJECT       *Scope,
+    char                    *Path,
+    UINT16                  Opcode,
+    UINT32                  Create);
+
+ACPI_PARSE_OBJECT *
+AcpiPsGetArg(
+    ACPI_PARSE_OBJECT       *op,
+    UINT32                   argn);
+
+ACPI_PARSE_OBJECT *
+AcpiPsGetDepthNext (
+    ACPI_PARSE_OBJECT       *Origin,
+    ACPI_PARSE_OBJECT       *Op);
+
+
+/*
+ * pswalk - parse tree walk routines
+ */
+ACPI_STATUS
+AcpiPsWalkParsedAml (
+    ACPI_PARSE_OBJECT       *StartOp,
+    ACPI_PARSE_OBJECT       *EndOp,
+    ACPI_OPERAND_OBJECT     *MthDesc,
+    ACPI_NAMESPACE_NODE     *StartNode,
+    ACPI_OPERAND_OBJECT     **Params,
+    ACPI_OPERAND_OBJECT     **CallerReturnDesc,
+    ACPI_OWNER_ID           OwnerId,
+    ACPI_PARSE_DOWNWARDS    DescendingCallback,
+    ACPI_PARSE_UPWARDS      AscendingCallback);
+
+ACPI_STATUS
+AcpiPsGetNextWalkOp (
+    ACPI_WALK_STATE         *WalkState,
+    ACPI_PARSE_OBJECT       *Op,
+    ACPI_PARSE_UPWARDS      AscendingCallback);
+
+ACPI_STATUS
+AcpiPsDeleteCompletedOp (
+    ACPI_WALK_STATE         *WalkState);
+
+void
+AcpiPsDeleteParseTree (
+    ACPI_PARSE_OBJECT       *root);
+
+
+/*
+ * psutils - parser utilities
+ */
+ACPI_PARSE_OBJECT *
+AcpiPsCreateScopeOp (
+    UINT8                   *Aml);
+
+void
+AcpiPsInitOp (
+    ACPI_PARSE_OBJECT       *op,
+    UINT16                  opcode);
+
+ACPI_PARSE_OBJECT *
+AcpiPsAllocOp (
+    UINT16                  Opcode,
+    UINT8                   *Aml);
+
+void
+AcpiPsFreeOp (
+    ACPI_PARSE_OBJECT       *Op);
+
+BOOLEAN
+AcpiPsIsLeadingChar (
+    UINT32                  c);
+
+UINT32
+AcpiPsGetName(
+    ACPI_PARSE_OBJECT       *op);
+
+void
+AcpiPsSetName(
+    ACPI_PARSE_OBJECT       *op,
+    UINT32                  name);
+
+
+/*
+ * psdump - display parser tree
+ */
+UINT32
+AcpiPsSprintPath (
+    char                    *BufferStart,
+    UINT32                  BufferSize,
+    ACPI_PARSE_OBJECT       *Op);
+
+UINT32
+AcpiPsSprintOp (
+    char                    *BufferStart,
+    UINT32                  BufferSize,
+    ACPI_PARSE_OBJECT       *Op);
+
+void
+AcpiPsShow (
+    ACPI_PARSE_OBJECT       *op);
+
+
+#endif /* __ACPARSER_H__ */

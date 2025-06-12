@@ -245,118 +245,8 @@ AcpiInitializeSubsystem (
 
 ACPI_EXPORT_SYMBOL_INIT (AcpiInitializeSubsystem)
 
-
-/*******************************************************************************
- *
- * FUNCTION:    AcpiEnableSubsystem
- *
- * PARAMETERS:  Flags               - Init/enable Options
- *
- * RETURN:      Status
- *
- * DESCRIPTION: Completes the subsystem initialization including hardware.
- *              Puts system into ACPI mode if it isn't already.
- *
- ******************************************************************************/
-
-ACPI_STATUS ACPI_INIT_FUNCTION
-AcpiEnableSubsystem (
-    UINT32                  Flags)
-{
-    ACPI_STATUS             Status = AE_OK;
-
-
-    ACPI_FUNCTION_TRACE (AcpiEnableSubsystem);
-
-
-    /*
-     * The early initialization phase is complete. The namespace is loaded,
-     * and we can now support address spaces other than Memory, I/O, and
-     * PCI_Config.
-     */
-    AcpiGbl_EarlyInitialization = FALSE;
-
-    /*
-     * Obtain a permanent mapping for the FACS. This is required for the
-     * Global Lock and the Firmware Waking Vector
-     */
-    if (!(Flags & ACPI_NO_FACS_INIT))
-    {
-        Status = AcpiTbInitializeFacs ();
-        if (ACPI_FAILURE (Status))
-        {
-            ACPI_WARNING ((AE_INFO, "Could not map the FACS table"));
-            return_ACPI_STATUS (Status);
-        }
-    }
-
-#if (!ACPI_REDUCED_HARDWARE)
-
-    /* Enable ACPI mode */
-
-    if (!(Flags & ACPI_NO_ACPI_ENABLE))
-    {
-        ACPI_DEBUG_PRINT ((ACPI_DB_EXEC, "[Init] Going into ACPI mode\n"));
-
-        AcpiGbl_OriginalMode = AcpiHwGetMode();
-
-        Status = AcpiEnable ();
-        if (ACPI_FAILURE (Status))
-        {
-            ACPI_WARNING ((AE_INFO, "AcpiEnable failed"));
-            return_ACPI_STATUS (Status);
-        }
-    }
-
-    /*
-     * Initialize ACPI Event handling (Fixed and General Purpose)
-     *
-     * Note1: We must have the hardware and events initialized before we can
-     * execute any control methods safely. Any control method can require
-     * ACPI hardware support, so the hardware must be fully initialized before
-     * any method execution!
-     *
-     * Note2: Fixed events are initialized and enabled here. GPEs are
-     * initialized, but cannot be enabled until after the hardware is
-     * completely initialized (SCI and GlobalLock activated) and the various
-     * initialization control methods are run (_REG, _STA, _INI) on the
-     * entire namespace.
-     */
-    if (!(Flags & ACPI_NO_EVENT_INIT))
-    {
-        ACPI_DEBUG_PRINT ((ACPI_DB_EXEC,
-            "[Init] Initializing ACPI events\n"));
-
-        Status = AcpiEvInitializeEvents ();
-        if (ACPI_FAILURE (Status))
-        {
-            return_ACPI_STATUS (Status);
-        }
-    }
-
-    /*
-     * Install the SCI handler and Global Lock handler. This completes the
-     * hardware initialization.
-     */
-    if (!(Flags & ACPI_NO_HANDLER_INIT))
-    {
-        ACPI_DEBUG_PRINT ((ACPI_DB_EXEC,
-            "[Init] Installing SCI/GL handlers\n"));
-
-        Status = AcpiEvInstallXruptHandlers ();
-        if (ACPI_FAILURE (Status))
-        {
-            return_ACPI_STATUS (Status);
-        }
-    }
-
-#endif /* !ACPI_REDUCED_HARDWARE */
-
-    return_ACPI_STATUS (Status);
-}
-
-ACPI_EXPORT_SYMBOL_INIT (AcpiEnableSubsystem)
-
+/* Not ready for this yet */
+#ifdef ACPI_INIT_OBJS
 
 /*******************************************************************************
  *
@@ -428,3 +318,4 @@ AcpiInitializeObjects (
 }
 
 ACPI_EXPORT_SYMBOL_INIT (AcpiInitializeObjects)
+#endif /* ACPI_INIT_OBJS */

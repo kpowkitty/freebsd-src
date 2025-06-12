@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Module Name: utinit - Common ACPI subsystem initialization
+ * Module Name: evmisc - Miscellaneous event manager support functions
  *
  *****************************************************************************/
 
@@ -151,312 +151,304 @@
 
 #include <acpi.h>
 #include <accommon.h>
-#include <acnamesp.h>
 #include <acevents.h>
-#include <actables.h>
+#include <acnamesp.h>
 
-#define _COMPONENT          ACPI_UTILITIES
-        ACPI_MODULE_NAME    ("utinit")
+#define _COMPONENT          ACPI_EVENTS
+        ACPI_MODULE_NAME    ("evmisc")
 
 /* Local prototypes */
 
-static void AcpiUtTerminate (
-    void);
-
-#if (!ACPI_REDUCED_HARDWARE)
-
-static void
-AcpiUtFreeGpeLists (
-    void);
-
-#else
-
-#define AcpiUtFreeGpeLists()
-#endif /* !ACPI_REDUCED_HARDWARE */
-
-
-#if (!ACPI_REDUCED_HARDWARE)
-/******************************************************************************
- *
- * FUNCTION:    AcpiUtFreeGpeLists
- *
- * PARAMETERS:  none
- *
- * RETURN:      none
- *
- * DESCRIPTION: Free global GPE lists
- *
- ******************************************************************************/
-
-static void
-AcpiUtFreeGpeLists (
-    void)
-{
-    ACPI_GPE_BLOCK_INFO     *GpeBlock;
-    ACPI_GPE_BLOCK_INFO     *NextGpeBlock;
-    ACPI_GPE_XRUPT_INFO     *GpeXruptInfo;
-    ACPI_GPE_XRUPT_INFO     *NextGpeXruptInfo;
-
-
-    /* Free global GPE blocks and related info structures */
-
-    GpeXruptInfo = AcpiGbl_GpeXruptListHead;
-    while (GpeXruptInfo)
-    {
-        GpeBlock = GpeXruptInfo->GpeBlockListHead;
-        while (GpeBlock)
-        {
-            NextGpeBlock = GpeBlock->Next;
-            ACPI_FREE (GpeBlock->EventInfo);
-            ACPI_FREE (GpeBlock->RegisterInfo);
-            ACPI_FREE (GpeBlock);
-
-            GpeBlock = NextGpeBlock;
-        }
-        NextGpeXruptInfo = GpeXruptInfo->Next;
-        ACPI_FREE (GpeXruptInfo);
-        GpeXruptInfo = NextGpeXruptInfo;
-    }
-}
-#endif /* !ACPI_REDUCED_HARDWARE */
-
-
-/*******************************************************************************
- *
- * FUNCTION:    AcpiUtInitGlobals
- *
- * PARAMETERS:  None
- *
- * RETURN:      Status
- *
- * DESCRIPTION: Initialize ACPICA globals. All globals that require specific
- *              initialization should be initialized here. This allows for
- *              a warm restart.
- *
- ******************************************************************************/
-
-ACPI_STATUS
-AcpiUtInitGlobals (
-    void)
-{
-    ACPI_STATUS             Status;
-    UINT32                  i;
-
-
-    ACPI_FUNCTION_TRACE (UtInitGlobals);
-
-
-    /* Create all memory caches */
-
-    Status = AcpiUtCreateCaches ();
-    if (ACPI_FAILURE (Status))
-    {
-        return_ACPI_STATUS (Status);
-    }
-
-    /* Address Range lists */
-
-    for (i = 0; i < ACPI_ADDRESS_RANGE_MAX; i++)
-    {
-        AcpiGbl_AddressRangeList[i] = NULL;
-    }
-
-    /* Mutex locked flags */
-
-    for (i = 0; i < ACPI_NUM_MUTEX; i++)
-    {
-        AcpiGbl_MutexInfo[i].Mutex          = NULL;
-        AcpiGbl_MutexInfo[i].ThreadId       = ACPI_MUTEX_NOT_ACQUIRED;
-        AcpiGbl_MutexInfo[i].UseCount       = 0;
-    }
-
-    for (i = 0; i < ACPI_NUM_OWNERID_MASKS; i++)
-    {
-        AcpiGbl_OwnerIdMask[i]              = 0;
-    }
-
-    /* Last OwnerID is never valid */
-
-    AcpiGbl_OwnerIdMask[ACPI_NUM_OWNERID_MASKS - 1] = 0x80000000;
-
-    /* Event counters */
-
-    AcpiMethodCount                     = 0;
-    AcpiSciCount                        = 0;
-    AcpiGpeCount                        = 0;
-
-    for (i = 0; i < ACPI_NUM_FIXED_EVENTS; i++)
-    {
-        AcpiFixedEventCount[i]              = 0;
-    }
-
-#if (!ACPI_REDUCED_HARDWARE)
-
-    /* GPE/SCI support */
-
-    AcpiGbl_AllGpesInitialized          = FALSE;
-    AcpiGbl_GpeXruptListHead            = NULL;
-    AcpiGbl_GpeFadtBlocks[0]            = NULL;
-    AcpiGbl_GpeFadtBlocks[1]            = NULL;
-    AcpiCurrentGpeCount                 = 0;
-
-    AcpiGbl_GlobalEventHandler          = NULL;
-    AcpiGbl_SciHandlerList              = NULL;
-
-#endif /* !ACPI_REDUCED_HARDWARE */
-
-    /* Global handlers */
-
-    AcpiGbl_GlobalNotify[0].Handler     = NULL;
-    AcpiGbl_GlobalNotify[1].Handler     = NULL;
-    AcpiGbl_ExceptionHandler            = NULL;
-    AcpiGbl_InitHandler                 = NULL;
-    AcpiGbl_TableHandler                = NULL;
-    AcpiGbl_InterfaceHandler            = NULL;
-
-    /* Global Lock support */
-
-    AcpiGbl_GlobalLockSemaphore         = ACPI_SEMAPHORE_NULL;
-    AcpiGbl_GlobalLockMutex             = NULL;
-    AcpiGbl_GlobalLockAcquired          = FALSE;
-    AcpiGbl_GlobalLockHandle            = 0;
-    AcpiGbl_GlobalLockPresent           = FALSE;
-
-    /* Miscellaneous variables */
-
-    AcpiGbl_DSDT                        = NULL;
-    AcpiGbl_CmSingleStep                = FALSE;
-    AcpiGbl_Shutdown                    = FALSE;
-    AcpiGbl_NsLookupCount               = 0;
-    AcpiGbl_PsFindCount                 = 0;
-    AcpiGbl_AcpiHardwarePresent         = TRUE;
-    AcpiGbl_LastOwnerIdIndex            = 0;
-    AcpiGbl_NextOwnerIdOffset           = 0;
-    AcpiGbl_DebuggerConfiguration       = DEBUGGER_THREADING;
-    AcpiGbl_OsiMutex                    = NULL;
-
-    /* Hardware oriented */
-
-    AcpiGbl_EventsInitialized           = FALSE;
-    AcpiGbl_SystemAwakeAndRunning       = TRUE;
-
-    /* Namespace */
-
-    AcpiGbl_RootNode                    = NULL;
-    AcpiGbl_RootNodeStruct.Name.Integer = ACPI_ROOT_NAME;
-    AcpiGbl_RootNodeStruct.DescriptorType = ACPI_DESC_TYPE_NAMED;
-    AcpiGbl_RootNodeStruct.Type         = ACPI_TYPE_DEVICE;
-    AcpiGbl_RootNodeStruct.Parent       = NULL;
-    AcpiGbl_RootNodeStruct.Child        = NULL;
-    AcpiGbl_RootNodeStruct.Peer         = NULL;
-    AcpiGbl_RootNodeStruct.Object       = NULL;
-
-
-#ifdef ACPI_DISASSEMBLER
-    AcpiGbl_ExternalList                = NULL;
-    AcpiGbl_NumExternalMethods          = 0;
-    AcpiGbl_ResolvedExternalMethods     = 0;
-#endif
-
-#ifdef ACPI_DEBUG_OUTPUT
-    AcpiGbl_LowestStackPointer          = ACPI_CAST_PTR (ACPI_SIZE, ACPI_SIZE_MAX);
-#endif
-
-#ifdef ACPI_DBG_TRACK_ALLOCATIONS
-    AcpiGbl_DisplayFinalMemStats        = FALSE;
-    AcpiGbl_DisableMemTracking          = FALSE;
-#endif
-
-    return_ACPI_STATUS (AE_OK);
-}
-
-
-/******************************************************************************
- *
- * FUNCTION:    AcpiUtTerminate
- *
- * PARAMETERS:  none
- *
- * RETURN:      none
- *
- * DESCRIPTION: Free global memory
- *
- ******************************************************************************/
-
-static void
-AcpiUtTerminate (
-    void)
-{
-    ACPI_FUNCTION_TRACE (UtTerminate);
-
-    AcpiUtFreeGpeLists ();
-    AcpiUtDeleteAddressLists ();
-    return_VOID;
-}
+static void ACPI_SYSTEM_XFACE
+AcpiEvNotifyDispatch (
+    void                    *Context);
 
 #ifdef ACPI_INIT_OBJS
 
 /*******************************************************************************
  *
- * FUNCTION:    AcpiUtSubsystemShutdown
+ * FUNCTION:    AcpiEvIsNotifyObject
  *
- * PARAMETERS:  None
+ * PARAMETERS:  Node            - Node to check
  *
- * RETURN:      None
+ * RETURN:      TRUE if notifies allowed on this object
  *
- * DESCRIPTION: Shutdown the various components. Do not delete the mutex
- *              objects here, because the AML debugger may be still running.
+ * DESCRIPTION: Check type of node for a object that supports notifies.
+ *
+ *              TBD: This could be replaced by a flag bit in the node.
+ *
+ ******************************************************************************/
+
+BOOLEAN
+AcpiEvIsNotifyObject (
+    ACPI_NAMESPACE_NODE     *Node)
+{
+
+    switch (Node->Type)
+    {
+    case ACPI_TYPE_DEVICE:
+    case ACPI_TYPE_PROCESSOR:
+    case ACPI_TYPE_THERMAL:
+        /*
+         * These are the ONLY objects that can receive ACPI notifications
+         */
+        return (TRUE);
+
+    default:
+
+        return (FALSE);
+    }
+}
+
+#endif
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiEvQueueNotifyRequest
+ *
+ * PARAMETERS:  Node            - NS node for the notified object
+ *              NotifyValue     - Value from the Notify() request
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Dispatch a device notification event to a previously
+ *              installed handler.
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AcpiEvQueueNotifyRequest (
+    ACPI_NAMESPACE_NODE     *Node,
+    UINT32                  NotifyValue)
+{
+    ACPI_OPERAND_OBJECT     *ObjDesc;
+    ACPI_OPERAND_OBJECT     *HandlerListHead = NULL;
+    ACPI_GENERIC_STATE      *Info;
+    UINT8                   HandlerListId = 0;
+    ACPI_STATUS             Status = AE_OK;
+
+
+    ACPI_FUNCTION_NAME (EvQueueNotifyRequest);
+
+
+    /* Are Notifies allowed on this object? */
+
+    if (!AcpiEvIsNotifyObject (Node))
+    {
+        return (AE_TYPE);
+    }
+
+    /* Get the correct notify list type (System or Device) */
+
+    if (NotifyValue <= ACPI_MAX_SYS_NOTIFY)
+    {
+        HandlerListId = ACPI_SYSTEM_HANDLER_LIST;
+    }
+    else
+    {
+        HandlerListId = ACPI_DEVICE_HANDLER_LIST;
+    }
+
+    /* Get the notify object attached to the namespace Node */
+
+    ObjDesc = AcpiNsGetAttachedObject (Node);
+    if (ObjDesc)
+    {
+        /* We have an attached object, Get the correct handler list */
+
+        HandlerListHead = ObjDesc->CommonNotify.NotifyList[HandlerListId];
+    }
+
+    /*
+     * If there is no notify handler (Global or Local)
+     * for this object, just ignore the notify
+     */
+    if (!AcpiGbl_GlobalNotify[HandlerListId].Handler && !HandlerListHead)
+    {
+        ACPI_DEBUG_PRINT ((ACPI_DB_INFO,
+            "No notify handler for Notify, ignoring (%4.4s, %X) node %p\n",
+            AcpiUtGetNodeName (Node), NotifyValue, Node));
+
+        return (AE_OK);
+    }
+
+    /* Setup notify info and schedule the notify dispatcher */
+
+    Info = AcpiUtCreateGenericState ();
+    if (!Info)
+    {
+        return (AE_NO_MEMORY);
+    }
+
+    Info->Common.DescriptorType = ACPI_DESC_TYPE_STATE_NOTIFY;
+
+    Info->Notify.Node = Node;
+    Info->Notify.Value = (UINT16) NotifyValue;
+    Info->Notify.HandlerListId = HandlerListId;
+    Info->Notify.HandlerListHead = HandlerListHead;
+    Info->Notify.Global = &AcpiGbl_GlobalNotify[HandlerListId];
+
+    ACPI_DEBUG_PRINT ((ACPI_DB_INFO,
+        "Dispatching Notify on [%4.4s] (%s) Value 0x%2.2X (%s) Node %p\n",
+        AcpiUtGetNodeName (Node), AcpiUtGetTypeName (Node->Type),
+        NotifyValue, AcpiUtGetNotifyName (NotifyValue, ACPI_TYPE_ANY), Node));
+
+    Status = AcpiOsExecute (OSL_NOTIFY_HANDLER,
+        AcpiEvNotifyDispatch, Info);
+    if (ACPI_FAILURE (Status))
+    {
+        AcpiUtDeleteGenericState (Info);
+    }
+
+    return (Status);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiEvNotifyDispatch
+ *
+ * PARAMETERS:  Context         - To be passed to the notify handler
+ *
+ * RETURN:      None.
+ *
+ * DESCRIPTION: Dispatch a device notification event to a previously
+ *              installed handler.
+ *
+ ******************************************************************************/
+
+static void ACPI_SYSTEM_XFACE
+AcpiEvNotifyDispatch (
+    void                    *Context)
+{
+    ACPI_GENERIC_STATE      *Info = (ACPI_GENERIC_STATE *) Context;
+    ACPI_OPERAND_OBJECT     *HandlerObj;
+
+
+    ACPI_FUNCTION_ENTRY ();
+
+
+    /* Invoke a global notify handler if installed */
+
+    if (Info->Notify.Global->Handler)
+    {
+        Info->Notify.Global->Handler (Info->Notify.Node,
+            Info->Notify.Value,
+            Info->Notify.Global->Context);
+    }
+
+    /* Now invoke the local notify handler(s) if any are installed */
+
+    HandlerObj = Info->Notify.HandlerListHead;
+    while (HandlerObj)
+    {
+        HandlerObj->Notify.Handler (Info->Notify.Node,
+            Info->Notify.Value,
+            HandlerObj->Notify.Context);
+
+        HandlerObj = HandlerObj->Notify.Next[Info->Notify.HandlerListId];
+    }
+
+    /* All done with the info object */
+
+    AcpiUtDeleteGenericState (Info);
+}
+
+
+#if (!ACPI_REDUCED_HARDWARE)
+#ifdef ACPI_INIT_OBJS
+/******************************************************************************
+ *
+ * FUNCTION:    AcpiEvTerminate
+ *
+ * PARAMETERS:  none
+ *
+ * RETURN:      none
+ *
+ * DESCRIPTION: Disable events and free memory allocated for table storage.
  *
  ******************************************************************************/
 
 void
-AcpiUtSubsystemShutdown (
+AcpiEvTerminate (
     void)
 {
-    ACPI_FUNCTION_TRACE (UtSubsystemShutdown);
+    UINT32                  i;
+    ACPI_STATUS             Status;
 
 
-    /* Just exit if subsystem is already shutdown */
+    ACPI_FUNCTION_TRACE (EvTerminate);
 
-    if (AcpiGbl_Shutdown)
+
+    if (AcpiGbl_EventsInitialized)
     {
-        ACPI_ERROR ((AE_INFO, "ACPI Subsystem is already terminated"));
-        return_VOID;
+        /*
+         * Disable all event-related functionality. In all cases, on error,
+         * print a message but obviously we don't abort.
+         */
+
+        /* Disable all fixed events */
+
+        for (i = 0; i < ACPI_NUM_FIXED_EVENTS; i++)
+        {
+            Status = AcpiDisableEvent (i, 0);
+            if (ACPI_FAILURE (Status))
+            {
+                ACPI_ERROR ((AE_INFO,
+                    "Could not disable fixed event %u", (UINT32) i));
+            }
+        }
+
+        /* Disable all GPEs in all GPE blocks */
+
+        Status = AcpiEvWalkGpeList (AcpiHwDisableGpeBlock, NULL);
+        if (ACPI_FAILURE (Status))
+        {
+            ACPI_EXCEPTION ((AE_INFO, Status,
+                "Could not disable GPEs in GPE block"));
+        }
+
+        Status = AcpiEvRemoveGlobalLockHandler ();
+        if (ACPI_FAILURE (Status))
+        {
+            ACPI_EXCEPTION ((AE_INFO, Status,
+                "Could not remove Global Lock handler"));
+        }
+
+        AcpiGbl_EventsInitialized = FALSE;
     }
 
-    /* Subsystem appears active, go ahead and shut it down */
+    /* Remove SCI handlers */
 
-    AcpiGbl_Shutdown = TRUE;
-    AcpiGbl_StartupFlags = 0;
-    ACPI_DEBUG_PRINT ((ACPI_DB_INFO, "Shutting down ACPI Subsystem\n"));
+    Status = AcpiEvRemoveAllSciHandlers ();
+    if (ACPI_FAILURE (Status))
+    {
+        ACPI_ERROR ((AE_INFO,
+            "Could not remove SCI handler"));
+    }
 
-#ifndef ACPI_ASL_COMPILER
+    /* Deallocate all handler objects installed within GPE info structs */
 
-    /* Close the AcpiEvent Handling */
+    Status = AcpiEvWalkGpeList (AcpiEvDeleteGpeHandlers, NULL);
+    if (ACPI_FAILURE (Status))
+    {
+        ACPI_EXCEPTION ((AE_INFO, Status,
+            "Could not delete GPE handlers"));
+    }
 
-    AcpiEvTerminate ();
 
-    /* Delete any dynamic _OSI interfaces */
+    /* Return to original mode if necessary */
 
-    AcpiUtInterfaceTerminate ();
-#endif
-
-    /* Close the Namespace */
-
-    AcpiNsTerminate ();
-
-    /* Delete the ACPI tables */
-
-    AcpiTbTerminate ();
-
-    /* Close the globals */
-
-    AcpiUtTerminate ();
-
-    /* Purge the local caches */
-
-    (void) AcpiUtDeleteCaches ();
+    if (AcpiGbl_OriginalMode == ACPI_SYS_MODE_LEGACY)
+    {
+        Status = AcpiDisable ();
+        if (ACPI_FAILURE (Status))
+        {
+            ACPI_WARNING ((AE_INFO, "AcpiDisable failed"));
+        }
+    }
     return_VOID;
 }
 
+#endif /* !ACPI_REDUCED_HARDWARE */
 #endif /* ACPI_INIT_OBJS */

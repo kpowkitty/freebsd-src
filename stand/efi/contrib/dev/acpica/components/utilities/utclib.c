@@ -150,8 +150,8 @@
  *****************************************************************************/
 
 #define ACPI_CLIBRARY
-#include "acpi.h"
-#include "accommon.h"
+#include <acpi.h>
+#include <accommon.h>
 
 /*
  * This module contains implementations of the standard C library functions
@@ -200,6 +200,7 @@
 
 
 #ifndef ACPI_USE_SYSTEM_CLIBRARY    /* Entire module */
+#ifndef ACPI_USE_EFI_LIBRARY	    /* Everything except is* functions */
 
 
 /*******************************************************************************
@@ -1014,6 +1015,7 @@ tolower (
     return (isupper(c) ? ((c)+0x20) : (c));
 }
 
+#else /* ACPI_USE_EFI_LIBRARY */
 
 /*******************************************************************************
  *
@@ -1164,5 +1166,5 @@ const UINT8 AcpiGbl_Ctypes[257] = {
     0                                 /* 0x100 */
 };
 
-
+#endif /* ACPI_USE_EFI_LIBRARY */
 #endif /* ACPI_USE_SYSTEM_CLIBRARY */

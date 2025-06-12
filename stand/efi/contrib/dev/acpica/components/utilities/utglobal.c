@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Module Name: utinit - Common ACPI subsystem initialization
+ * Module Name: utglobal - Global variables for the ACPI subsystem
  *
  *****************************************************************************/
 
@@ -149,314 +149,200 @@
  *
  *****************************************************************************/
 
+#define EXPORT_ACPI_INTERFACES
+#define DEFINE_ACPI_GLOBALS
+
 #include <acpi.h>
 #include <accommon.h>
-#include <acnamesp.h>
-#include <acevents.h>
-#include <actables.h>
 
 #define _COMPONENT          ACPI_UTILITIES
-        ACPI_MODULE_NAME    ("utinit")
+        ACPI_MODULE_NAME    ("utglobal")
 
-/* Local prototypes */
 
-static void AcpiUtTerminate (
-    void);
+/*******************************************************************************
+ *
+ * Static global variable initialization.
+ *
+ ******************************************************************************/
 
-#if (!ACPI_REDUCED_HARDWARE)
+/* Various state name strings */
 
-static void
-AcpiUtFreeGpeLists (
-    void);
+const char                  *AcpiGbl_SleepStateNames[ACPI_S_STATE_COUNT] =
+{
+    "\\_S0_",
+    "\\_S1_",
+    "\\_S2_",
+    "\\_S3_",
+    "\\_S4_",
+    "\\_S5_"
+};
 
-#else
+const char                  *AcpiGbl_LowestDstateNames[ACPI_NUM_SxW_METHODS] =
+{
+    "_S0W",
+    "_S1W",
+    "_S2W",
+    "_S3W",
+    "_S4W"
+};
 
-#define AcpiUtFreeGpeLists()
-#endif /* !ACPI_REDUCED_HARDWARE */
+const char                  *AcpiGbl_HighestDstateNames[ACPI_NUM_SxD_METHODS] =
+{
+    "_S1D",
+    "_S2D",
+    "_S3D",
+    "_S4D"
+};
+
+
+/* Hex-to-ascii */
+
+const char                  AcpiGbl_LowerHexDigits[] = "0123456789abcdef";
+const char                  AcpiGbl_UpperHexDigits[] = "0123456789ABCDEF";
+
+
+/*******************************************************************************
+ *
+ * Namespace globals
+ *
+ ******************************************************************************/
+
+/*
+ * Predefined ACPI Names (Built-in to the Interpreter)
+ *
+ * NOTES:
+ * 1) _SB_ is defined to be a device to allow \_SB_._INI to be run
+ *    during the initialization sequence.
+ * 2) _TZ_ is defined to be a thermal zone in order to allow ASL code to
+ *    perform a Notify() operation on it. 09/2010: Changed to type Device.
+ *    This still allows notifies, but does not confuse host code that
+ *    searches for valid ThermalZone objects.
+ */
+const ACPI_PREDEFINED_NAMES     AcpiGbl_PreDefinedNames[] =
+{
+    {"_GPE",    ACPI_TYPE_LOCAL_SCOPE,      NULL},
+    {"_PR_",    ACPI_TYPE_LOCAL_SCOPE,      NULL},
+    {"_SB_",    ACPI_TYPE_DEVICE,           NULL},
+    {"_SI_",    ACPI_TYPE_LOCAL_SCOPE,      NULL},
+    {"_TZ_",    ACPI_TYPE_DEVICE,           NULL},
+    /*
+     * March, 2015:
+     * The _REV object is in the process of being deprecated, because
+     * other ACPI implementations permanently return 2. Thus, it
+     * has little or no value. Return 2 for compatibility with
+     * other ACPI implementations.
+     */
+    {"_REV",    ACPI_TYPE_INTEGER,          ACPI_CAST_PTR (char, 2)},
+    {"_OS_",    ACPI_TYPE_STRING,           ACPI_OS_NAME},
+    {"_GL_",    ACPI_TYPE_MUTEX,            ACPI_CAST_PTR (char, 1)},
+    {"_OSI",    ACPI_TYPE_METHOD,           ACPI_CAST_PTR (char, 1)},
+
+    /* Table terminator */
+
+    {NULL,      ACPI_TYPE_ANY,              NULL}
+};
 
 
 #if (!ACPI_REDUCED_HARDWARE)
 /******************************************************************************
  *
- * FUNCTION:    AcpiUtFreeGpeLists
- *
- * PARAMETERS:  none
- *
- * RETURN:      none
- *
- * DESCRIPTION: Free global GPE lists
+ * Event and Hardware globals
  *
  ******************************************************************************/
 
-static void
-AcpiUtFreeGpeLists (
-    void)
+ACPI_BIT_REGISTER_INFO      AcpiGbl_BitRegisterInfo[ACPI_NUM_BITREG] =
 {
-    ACPI_GPE_BLOCK_INFO     *GpeBlock;
-    ACPI_GPE_BLOCK_INFO     *NextGpeBlock;
-    ACPI_GPE_XRUPT_INFO     *GpeXruptInfo;
-    ACPI_GPE_XRUPT_INFO     *NextGpeXruptInfo;
+    /* Name                                     Parent Register             Register Bit Position                   Register Bit Mask       */
+
+    /* ACPI_BITREG_TIMER_STATUS         */   {ACPI_REGISTER_PM1_STATUS,   ACPI_BITPOSITION_TIMER_STATUS,          ACPI_BITMASK_TIMER_STATUS},
+    /* ACPI_BITREG_BUS_MASTER_STATUS    */   {ACPI_REGISTER_PM1_STATUS,   ACPI_BITPOSITION_BUS_MASTER_STATUS,     ACPI_BITMASK_BUS_MASTER_STATUS},
+    /* ACPI_BITREG_GLOBAL_LOCK_STATUS   */   {ACPI_REGISTER_PM1_STATUS,   ACPI_BITPOSITION_GLOBAL_LOCK_STATUS,    ACPI_BITMASK_GLOBAL_LOCK_STATUS},
+    /* ACPI_BITREG_POWER_BUTTON_STATUS  */   {ACPI_REGISTER_PM1_STATUS,   ACPI_BITPOSITION_POWER_BUTTON_STATUS,   ACPI_BITMASK_POWER_BUTTON_STATUS},
+    /* ACPI_BITREG_SLEEP_BUTTON_STATUS  */   {ACPI_REGISTER_PM1_STATUS,   ACPI_BITPOSITION_SLEEP_BUTTON_STATUS,   ACPI_BITMASK_SLEEP_BUTTON_STATUS},
+    /* ACPI_BITREG_RT_CLOCK_STATUS      */   {ACPI_REGISTER_PM1_STATUS,   ACPI_BITPOSITION_RT_CLOCK_STATUS,       ACPI_BITMASK_RT_CLOCK_STATUS},
+    /* ACPI_BITREG_WAKE_STATUS          */   {ACPI_REGISTER_PM1_STATUS,   ACPI_BITPOSITION_WAKE_STATUS,           ACPI_BITMASK_WAKE_STATUS},
+    /* ACPI_BITREG_PCIEXP_WAKE_STATUS   */   {ACPI_REGISTER_PM1_STATUS,   ACPI_BITPOSITION_PCIEXP_WAKE_STATUS,    ACPI_BITMASK_PCIEXP_WAKE_STATUS},
+
+    /* ACPI_BITREG_TIMER_ENABLE         */   {ACPI_REGISTER_PM1_ENABLE,   ACPI_BITPOSITION_TIMER_ENABLE,          ACPI_BITMASK_TIMER_ENABLE},
+    /* ACPI_BITREG_GLOBAL_LOCK_ENABLE   */   {ACPI_REGISTER_PM1_ENABLE,   ACPI_BITPOSITION_GLOBAL_LOCK_ENABLE,    ACPI_BITMASK_GLOBAL_LOCK_ENABLE},
+    /* ACPI_BITREG_POWER_BUTTON_ENABLE  */   {ACPI_REGISTER_PM1_ENABLE,   ACPI_BITPOSITION_POWER_BUTTON_ENABLE,   ACPI_BITMASK_POWER_BUTTON_ENABLE},
+    /* ACPI_BITREG_SLEEP_BUTTON_ENABLE  */   {ACPI_REGISTER_PM1_ENABLE,   ACPI_BITPOSITION_SLEEP_BUTTON_ENABLE,   ACPI_BITMASK_SLEEP_BUTTON_ENABLE},
+    /* ACPI_BITREG_RT_CLOCK_ENABLE      */   {ACPI_REGISTER_PM1_ENABLE,   ACPI_BITPOSITION_RT_CLOCK_ENABLE,       ACPI_BITMASK_RT_CLOCK_ENABLE},
+    /* ACPI_BITREG_PCIEXP_WAKE_DISABLE  */   {ACPI_REGISTER_PM1_ENABLE,   ACPI_BITPOSITION_PCIEXP_WAKE_DISABLE,   ACPI_BITMASK_PCIEXP_WAKE_DISABLE},
+
+    /* ACPI_BITREG_SCI_ENABLE           */   {ACPI_REGISTER_PM1_CONTROL,  ACPI_BITPOSITION_SCI_ENABLE,            ACPI_BITMASK_SCI_ENABLE},
+    /* ACPI_BITREG_BUS_MASTER_RLD       */   {ACPI_REGISTER_PM1_CONTROL,  ACPI_BITPOSITION_BUS_MASTER_RLD,        ACPI_BITMASK_BUS_MASTER_RLD},
+    /* ACPI_BITREG_GLOBAL_LOCK_RELEASE  */   {ACPI_REGISTER_PM1_CONTROL,  ACPI_BITPOSITION_GLOBAL_LOCK_RELEASE,   ACPI_BITMASK_GLOBAL_LOCK_RELEASE},
+    /* ACPI_BITREG_SLEEP_TYPE           */   {ACPI_REGISTER_PM1_CONTROL,  ACPI_BITPOSITION_SLEEP_TYPE,            ACPI_BITMASK_SLEEP_TYPE},
+    /* ACPI_BITREG_SLEEP_ENABLE         */   {ACPI_REGISTER_PM1_CONTROL,  ACPI_BITPOSITION_SLEEP_ENABLE,          ACPI_BITMASK_SLEEP_ENABLE},
+
+    /* ACPI_BITREG_ARB_DIS              */   {ACPI_REGISTER_PM2_CONTROL,  ACPI_BITPOSITION_ARB_DISABLE,           ACPI_BITMASK_ARB_DISABLE}
+};
 
 
-    /* Free global GPE blocks and related info structures */
-
-    GpeXruptInfo = AcpiGbl_GpeXruptListHead;
-    while (GpeXruptInfo)
-    {
-        GpeBlock = GpeXruptInfo->GpeBlockListHead;
-        while (GpeBlock)
-        {
-            NextGpeBlock = GpeBlock->Next;
-            ACPI_FREE (GpeBlock->EventInfo);
-            ACPI_FREE (GpeBlock->RegisterInfo);
-            ACPI_FREE (GpeBlock);
-
-            GpeBlock = NextGpeBlock;
-        }
-        NextGpeXruptInfo = GpeXruptInfo->Next;
-        ACPI_FREE (GpeXruptInfo);
-        GpeXruptInfo = NextGpeXruptInfo;
-    }
-}
+ACPI_FIXED_EVENT_INFO       AcpiGbl_FixedEventInfo[ACPI_NUM_FIXED_EVENTS] =
+{
+    /* ACPI_EVENT_PMTIMER       */  {ACPI_BITREG_TIMER_STATUS,          ACPI_BITREG_TIMER_ENABLE,        ACPI_BITMASK_TIMER_STATUS,          ACPI_BITMASK_TIMER_ENABLE},
+    /* ACPI_EVENT_GLOBAL        */  {ACPI_BITREG_GLOBAL_LOCK_STATUS,    ACPI_BITREG_GLOBAL_LOCK_ENABLE,  ACPI_BITMASK_GLOBAL_LOCK_STATUS,    ACPI_BITMASK_GLOBAL_LOCK_ENABLE},
+    /* ACPI_EVENT_POWER_BUTTON  */  {ACPI_BITREG_POWER_BUTTON_STATUS,   ACPI_BITREG_POWER_BUTTON_ENABLE, ACPI_BITMASK_POWER_BUTTON_STATUS,   ACPI_BITMASK_POWER_BUTTON_ENABLE},
+    /* ACPI_EVENT_SLEEP_BUTTON  */  {ACPI_BITREG_SLEEP_BUTTON_STATUS,   ACPI_BITREG_SLEEP_BUTTON_ENABLE, ACPI_BITMASK_SLEEP_BUTTON_STATUS,   ACPI_BITMASK_SLEEP_BUTTON_ENABLE},
+    /* ACPI_EVENT_RTC           */  {ACPI_BITREG_RT_CLOCK_STATUS,       ACPI_BITREG_RT_CLOCK_ENABLE,     ACPI_BITMASK_RT_CLOCK_STATUS,       ACPI_BITMASK_RT_CLOCK_ENABLE},
+};
 #endif /* !ACPI_REDUCED_HARDWARE */
 
 
-/*******************************************************************************
- *
- * FUNCTION:    AcpiUtInitGlobals
- *
- * PARAMETERS:  None
- *
- * RETURN:      Status
- *
- * DESCRIPTION: Initialize ACPICA globals. All globals that require specific
- *              initialization should be initialized here. This allows for
- *              a warm restart.
- *
- ******************************************************************************/
+#if defined (ACPI_DISASSEMBLER) || defined (ACPI_ASL_COMPILER)
 
-ACPI_STATUS
-AcpiUtInitGlobals (
-    void)
+/* ToPld macro: compile/disassemble strings */
+
+const char              *AcpiGbl_PldPanelList[] =
 {
-    ACPI_STATUS             Status;
-    UINT32                  i;
+    "TOP",
+    "BOTTOM",
+    "LEFT",
+    "RIGHT",
+    "FRONT",
+    "BACK",
+    "UNKNOWN",
+    NULL
+};
 
-
-    ACPI_FUNCTION_TRACE (UtInitGlobals);
-
-
-    /* Create all memory caches */
-
-    Status = AcpiUtCreateCaches ();
-    if (ACPI_FAILURE (Status))
-    {
-        return_ACPI_STATUS (Status);
-    }
-
-    /* Address Range lists */
-
-    for (i = 0; i < ACPI_ADDRESS_RANGE_MAX; i++)
-    {
-        AcpiGbl_AddressRangeList[i] = NULL;
-    }
-
-    /* Mutex locked flags */
-
-    for (i = 0; i < ACPI_NUM_MUTEX; i++)
-    {
-        AcpiGbl_MutexInfo[i].Mutex          = NULL;
-        AcpiGbl_MutexInfo[i].ThreadId       = ACPI_MUTEX_NOT_ACQUIRED;
-        AcpiGbl_MutexInfo[i].UseCount       = 0;
-    }
-
-    for (i = 0; i < ACPI_NUM_OWNERID_MASKS; i++)
-    {
-        AcpiGbl_OwnerIdMask[i]              = 0;
-    }
-
-    /* Last OwnerID is never valid */
-
-    AcpiGbl_OwnerIdMask[ACPI_NUM_OWNERID_MASKS - 1] = 0x80000000;
-
-    /* Event counters */
-
-    AcpiMethodCount                     = 0;
-    AcpiSciCount                        = 0;
-    AcpiGpeCount                        = 0;
-
-    for (i = 0; i < ACPI_NUM_FIXED_EVENTS; i++)
-    {
-        AcpiFixedEventCount[i]              = 0;
-    }
-
-#if (!ACPI_REDUCED_HARDWARE)
-
-    /* GPE/SCI support */
-
-    AcpiGbl_AllGpesInitialized          = FALSE;
-    AcpiGbl_GpeXruptListHead            = NULL;
-    AcpiGbl_GpeFadtBlocks[0]            = NULL;
-    AcpiGbl_GpeFadtBlocks[1]            = NULL;
-    AcpiCurrentGpeCount                 = 0;
-
-    AcpiGbl_GlobalEventHandler          = NULL;
-    AcpiGbl_SciHandlerList              = NULL;
-
-#endif /* !ACPI_REDUCED_HARDWARE */
-
-    /* Global handlers */
-
-    AcpiGbl_GlobalNotify[0].Handler     = NULL;
-    AcpiGbl_GlobalNotify[1].Handler     = NULL;
-    AcpiGbl_ExceptionHandler            = NULL;
-    AcpiGbl_InitHandler                 = NULL;
-    AcpiGbl_TableHandler                = NULL;
-    AcpiGbl_InterfaceHandler            = NULL;
-
-    /* Global Lock support */
-
-    AcpiGbl_GlobalLockSemaphore         = ACPI_SEMAPHORE_NULL;
-    AcpiGbl_GlobalLockMutex             = NULL;
-    AcpiGbl_GlobalLockAcquired          = FALSE;
-    AcpiGbl_GlobalLockHandle            = 0;
-    AcpiGbl_GlobalLockPresent           = FALSE;
-
-    /* Miscellaneous variables */
-
-    AcpiGbl_DSDT                        = NULL;
-    AcpiGbl_CmSingleStep                = FALSE;
-    AcpiGbl_Shutdown                    = FALSE;
-    AcpiGbl_NsLookupCount               = 0;
-    AcpiGbl_PsFindCount                 = 0;
-    AcpiGbl_AcpiHardwarePresent         = TRUE;
-    AcpiGbl_LastOwnerIdIndex            = 0;
-    AcpiGbl_NextOwnerIdOffset           = 0;
-    AcpiGbl_DebuggerConfiguration       = DEBUGGER_THREADING;
-    AcpiGbl_OsiMutex                    = NULL;
-
-    /* Hardware oriented */
-
-    AcpiGbl_EventsInitialized           = FALSE;
-    AcpiGbl_SystemAwakeAndRunning       = TRUE;
-
-    /* Namespace */
-
-    AcpiGbl_RootNode                    = NULL;
-    AcpiGbl_RootNodeStruct.Name.Integer = ACPI_ROOT_NAME;
-    AcpiGbl_RootNodeStruct.DescriptorType = ACPI_DESC_TYPE_NAMED;
-    AcpiGbl_RootNodeStruct.Type         = ACPI_TYPE_DEVICE;
-    AcpiGbl_RootNodeStruct.Parent       = NULL;
-    AcpiGbl_RootNodeStruct.Child        = NULL;
-    AcpiGbl_RootNodeStruct.Peer         = NULL;
-    AcpiGbl_RootNodeStruct.Object       = NULL;
-
-
-#ifdef ACPI_DISASSEMBLER
-    AcpiGbl_ExternalList                = NULL;
-    AcpiGbl_NumExternalMethods          = 0;
-    AcpiGbl_ResolvedExternalMethods     = 0;
-#endif
-
-#ifdef ACPI_DEBUG_OUTPUT
-    AcpiGbl_LowestStackPointer          = ACPI_CAST_PTR (ACPI_SIZE, ACPI_SIZE_MAX);
-#endif
-
-#ifdef ACPI_DBG_TRACK_ALLOCATIONS
-    AcpiGbl_DisplayFinalMemStats        = FALSE;
-    AcpiGbl_DisableMemTracking          = FALSE;
-#endif
-
-    return_ACPI_STATUS (AE_OK);
-}
-
-
-/******************************************************************************
- *
- * FUNCTION:    AcpiUtTerminate
- *
- * PARAMETERS:  none
- *
- * RETURN:      none
- *
- * DESCRIPTION: Free global memory
- *
- ******************************************************************************/
-
-static void
-AcpiUtTerminate (
-    void)
+const char              *AcpiGbl_PldVerticalPositionList[] =
 {
-    ACPI_FUNCTION_TRACE (UtTerminate);
+    "UPPER",
+    "CENTER",
+    "LOWER",
+    NULL
+};
 
-    AcpiUtFreeGpeLists ();
-    AcpiUtDeleteAddressLists ();
-    return_VOID;
-}
-
-#ifdef ACPI_INIT_OBJS
-
-/*******************************************************************************
- *
- * FUNCTION:    AcpiUtSubsystemShutdown
- *
- * PARAMETERS:  None
- *
- * RETURN:      None
- *
- * DESCRIPTION: Shutdown the various components. Do not delete the mutex
- *              objects here, because the AML debugger may be still running.
- *
- ******************************************************************************/
-
-void
-AcpiUtSubsystemShutdown (
-    void)
+const char              *AcpiGbl_PldHorizontalPositionList[] =
 {
-    ACPI_FUNCTION_TRACE (UtSubsystemShutdown);
+    "LEFT",
+    "CENTER",
+    "RIGHT",
+    NULL
+};
 
-
-    /* Just exit if subsystem is already shutdown */
-
-    if (AcpiGbl_Shutdown)
-    {
-        ACPI_ERROR ((AE_INFO, "ACPI Subsystem is already terminated"));
-        return_VOID;
-    }
-
-    /* Subsystem appears active, go ahead and shut it down */
-
-    AcpiGbl_Shutdown = TRUE;
-    AcpiGbl_StartupFlags = 0;
-    ACPI_DEBUG_PRINT ((ACPI_DB_INFO, "Shutting down ACPI Subsystem\n"));
-
-#ifndef ACPI_ASL_COMPILER
-
-    /* Close the AcpiEvent Handling */
-
-    AcpiEvTerminate ();
-
-    /* Delete any dynamic _OSI interfaces */
-
-    AcpiUtInterfaceTerminate ();
+const char              *AcpiGbl_PldShapeList[] =
+{
+    "ROUND",
+    "OVAL",
+    "SQUARE",
+    "VERTICALRECTANGLE",
+    "HORIZONTALRECTANGLE",
+    "VERTICALTRAPEZOID",
+    "HORIZONTALTRAPEZOID",
+    "UNKNOWN",
+    "CHAMFERED",
+    NULL
+};
 #endif
 
-    /* Close the Namespace */
 
-    AcpiNsTerminate ();
+/* Public globals */
 
-    /* Delete the ACPI tables */
-
-    AcpiTbTerminate ();
-
-    /* Close the globals */
-
-    AcpiUtTerminate ();
-
-    /* Purge the local caches */
-
-    (void) AcpiUtDeleteCaches ();
-    return_VOID;
-}
-
-#endif /* ACPI_INIT_OBJS */
+ACPI_EXPORT_SYMBOL (AcpiGbl_FADT)
+ACPI_EXPORT_SYMBOL (AcpiDbgLevel)
+ACPI_EXPORT_SYMBOL (AcpiDbgLayer)
+ACPI_EXPORT_SYMBOL (AcpiGpeCount)
+ACPI_EXPORT_SYMBOL (AcpiCurrentGpeCount)

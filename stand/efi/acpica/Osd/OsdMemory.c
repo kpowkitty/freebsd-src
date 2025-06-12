@@ -31,12 +31,14 @@
  * 6.2 : Memory Management
  */
 
+/* EFI lib */
 #include <efi.h>
-#include <efidef.h>
-#include <efilib.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
+/* Contrib ACPICA */
+#include <acpi.h>
 
+/* FreeBSD ACPI */
+#include <init_acpi.h>
 EFI_GUID acpi = ACPI_TABLE_GUID;
 EFI_GUID acpi20 = ACPI_20_TABLE_GUID;
 

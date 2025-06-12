@@ -32,21 +32,26 @@ SRCS=	autoload.c \
 
 # ACPICA Loader Initialization
 # XXX Try to trim amount src'd if possible...
-CFLAGS+=	-UACPI_USE_SYSTEM_CLIBRARY
+CFLAGS+=	-UACPI_USE_SYSTEM_CLIBRARY \
+		-DACPI_SINGLE_THREADED \
+		-DACPI_USE_NATIVE_MEMORY_MAPPING \
+		-DACPI_USE_EFI_LIBRARY \
+		-UACPI_INIT_OBJS \
+		-UACPI_CREATE_PREDEFINED_TABLE
 
-SRCS+=	init_acpi.c \
-	libefi.c \
+SRCS+=	libefi.c \
 	OsdMemory.c \
-	nsaccess.c \
-	nsalloc.c \
-	nsobject.c \
-	tbfadt.c \
-	tbinstal.c \
-	tbprint.c \
-	tbutils.c \
-	tbxface.c \
-	tbxfroot.c \
-	tbfind.c \
+	exutils.c \
+	exmutex.c \
+	utmath.c \
+	uthex.c \
+	utglobal.c \
+	utinit.c \
+	utclib.c \
+	utmisc.c \
+	utstate.c \
+	utxferror.c \
+	utalloc.c \
 	utaddress.c \
 	utascii.c \
 	utcache.c \
@@ -54,12 +59,44 @@ SRCS+=	init_acpi.c \
 	utdebug.c \
 	utdecode.c \
 	utdelete.c \
-	utinit.c \
+	utexcep.c \
 	utmutex.c \
 	utobject.c \
 	utosi.c \
 	utstring.c \
-	utxfinit.c
+	utxfinit.c \
+	utpredef.c \
+	uterror.c \
+	osunixxf.c \
+	dswscope.c \
+	nsprepkg.c \
+	nsrepair.c \
+	nspredef.c \
+	nsarguments.c \
+	nseval.c \
+	nsnames.c \
+	nsaccess.c \
+	nssearch.c \
+	nsalloc.c \
+	nsobject.c \
+	nsutils.c \
+	hwgpe.c \
+	hwregs.c \
+	hwvalid.c \
+	evgpe.c \
+	evsci.c \
+	evmisc.c \
+	evgpeutil.c \
+	evgpeblk.c \
+	init_acpi.c \
+	tbdata.c \
+	tbfadt.c \
+	tbinstal.c \
+	tbprint.c \
+	tbutils.c \
+	tbxface.c \
+	tbxfroot.c \
+	tbfind.c 
 
 CFLAGS+=	-I${.CURDIR}/../loader
 .if ${MK_LOADER_ZFS} != "no"
@@ -74,16 +111,12 @@ CFLAGS.bootinfo.c += -I$(SRCTOP)/sys/teken
 CFLAGS.bootinfo.c += -I${SRCTOP}/contrib/pnglite
 CFLAGS.framebuffer.c += -I$(SRCTOP)/sys/teken
 CFLAGS.framebuffer.c += -I${SRCTOP}/contrib/pnglite
-CFLAGS.main.c += -I${EFISRC}/contrib/dev/acpica/include
-CFLAGS.main.c += -I${EFISRC}/acpica/include
 CFLAGS.main.c += -I$(SRCTOP)/sys/teken
 CFLAGS.main.c += -I${SRCTOP}/contrib/pnglite
 CFLAGS.gfx_fb.c += -I$(SRCTOP)/sys/teken
 CFLAGS.gfx_fb.c += -I${SRCTOP}/sys/cddl/contrib/opensolaris/common/lz4
 CFLAGS.gfx_fb.c += -I${SRCTOP}/contrib/pnglite
 CFLAGS.gfx_fb.c += -DHAVE_MEMCPY -I${SRCTOP}/sys/contrib/zlib
-CFLAGS.init_acpi.c += -I${EFISRC}/contrib/dev/acpica/include
-CFLAGS.init_acpi.c += -I${EFISRC}/acpica/include
 
 # We implement a slightly non-standard %S in that it always takes a
 # CHAR16 that's common in UEFI-land instead of a wchar_t. This only
@@ -97,15 +130,22 @@ CWARNFLAGS.main.c+=	-Wno-format
 .PATH: ${.CURDIR}/../libefi
 .PATH: ${.CURDIR}/../acpica
 .PATH: ${.CURDIR}/../acpica/Osd
+.PATH: ${.CURDIR}/../contrib/dev/acpica/os_specific/service_layers
 .PATH: ${.CURDIR}/../contrib/dev/acpica/components/tables
+.PATH: ${.CURDIR}/../contrib/dev/acpica/components/events
 .PATH: ${.CURDIR}/../contrib/dev/acpica/components/namespace
 .PATH: ${.CURDIR}/../contrib/dev/acpica/components/utilities
+.PATH: ${.CURDIR}/../contrib/dev/acpica/components/executer
+.PATH: ${.CURDIR}/../contrib/dev/acpica/components/dispatcher
+.PATH: ${.CURDIR}/../contrib/dev/acpica/components/hardware
 .include "${.CURDIR}/../loader/arch/${__arch}/Makefile.inc"
 
 CFLAGS+=	-I${.CURDIR}
 CFLAGS+=	-I${.CURDIR}/arch/${__arch}
 CFLAGS+=	-I${EFISRC}/include
 CFLAGS+=	-I${EFISRC}/include/${__arch}
+CFLAGS+=	-I${EFISRC}/contrib/dev/acpica/include
+CFLAGS+=	-I${EFISRC}/acpica/include
 CFLAGS+=	-I${BOOTSRC}/i386/libi386
 CFLAGS+=	-DEFI
 

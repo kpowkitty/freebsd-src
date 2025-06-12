@@ -85,8 +85,6 @@ struct arch_switch archsw = {	/* MI/MD interface boundary */
 	.arch_zfs_probe = efi_zfs_probe,
 };
 
-EFI_GUID acpi = ACPI_TABLE_GUID;
-EFI_GUID acpi20 = ACPI_20_TABLE_GUID;
 EFI_GUID devid = DEVICE_PATH_PROTOCOL;
 EFI_GUID imgid = LOADED_IMAGE_PROTOCOL;
 EFI_GUID mps = MPS_TABLE_GUID;

@@ -489,6 +489,7 @@ AcpiNsDeleteChildren (
     return_VOID;
 }
 
+#ifdef ACPI_INIT_OBJS
 
 /*******************************************************************************
  *
@@ -706,3 +707,5 @@ AcpiNsDeleteNamespaceByOwner (
     (void) AcpiUtReleaseMutex (ACPI_MTX_NAMESPACE);
     return_VOID;
 }
+
+#endif /* ACPI_INIT_OBJS */
