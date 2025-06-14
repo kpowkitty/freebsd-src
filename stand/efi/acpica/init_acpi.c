@@ -28,6 +28,8 @@
  * SUCH DAMAGE.
  */
 
+#include <efi.h>
+
 #include <stand.h>
 
 #include <acpi.h>

@@ -150,8 +150,8 @@
  *****************************************************************************/
 
 #define ACPI_CLIBRARY
-#include "acpi.h"
-#include "accommon.h"
+#include <acpi.h>
+#include <accommon.h>
 
 /*
  * This module contains implementations of the standard C library functions

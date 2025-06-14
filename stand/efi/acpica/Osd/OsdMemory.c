@@ -32,10 +32,10 @@
  */
 
 #include <efi.h>
-#include <efidef.h>
-#include <efilib.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
+#include <acpi.h>
+
+#include <init_acpi.h>
 
 EFI_GUID acpi = ACPI_TABLE_GUID;
 EFI_GUID acpi20 = ACPI_20_TABLE_GUID;
