@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Module Name: utxfinit - External interfaces for ACPICA initialization
+ * Module Name: evgpeutil - GPE utilities
  *
  *****************************************************************************/
 
@@ -149,282 +149,357 @@
  *
  *****************************************************************************/
 
-#define EXPORT_ACPI_INTERFACES
-
 #include <acpi.h>
 #include <accommon.h>
 #include <acevents.h>
-#include <acnamesp.h>
-#include <acdebug.h>
-#include <actables.h>
 
-#define _COMPONENT          ACPI_UTILITIES
-        ACPI_MODULE_NAME    ("utxfinit")
+#define _COMPONENT          ACPI_EVENTS
+        ACPI_MODULE_NAME    ("evgpeutil")
 
-/* For AcpiExec only */
-void
-AeDoObjectOverrides (
-    void);
+
+#if (!ACPI_REDUCED_HARDWARE) /* Entire module */
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiEvWalkGpeList
+ *
+ * PARAMETERS:  GpeWalkCallback     - Routine called for each GPE block
+ *              Context             - Value passed to callback
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Walk the GPE lists.
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AcpiEvWalkGpeList (
+    ACPI_GPE_CALLBACK       GpeWalkCallback,
+    void                    *Context)
+{
+    ACPI_GPE_BLOCK_INFO     *GpeBlock;
+    ACPI_GPE_XRUPT_INFO     *GpeXruptInfo;
+    ACPI_STATUS             Status = AE_OK;
+    ACPI_CPU_FLAGS          Flags;
+
+
+    ACPI_FUNCTION_TRACE (EvWalkGpeList);
+
+
+    Flags = AcpiOsAcquireLock (AcpiGbl_GpeLock);
+
+    /* Walk the interrupt level descriptor list */
+
+    GpeXruptInfo = AcpiGbl_GpeXruptListHead;
+    while (GpeXruptInfo)
+    {
+        /* Walk all Gpe Blocks attached to this interrupt level */
+
+        GpeBlock = GpeXruptInfo->GpeBlockListHead;
+        while (GpeBlock)
+        {
+            /* One callback per GPE block */
+
+            Status = GpeWalkCallback (GpeXruptInfo, GpeBlock, Context);
+            if (ACPI_FAILURE (Status))
+            {
+                if (Status == AE_CTRL_END) /* Callback abort */
+                {
+                    Status = AE_OK;
+                }
+                goto UnlockAndExit;
+            }
+
+            GpeBlock = GpeBlock->Next;
+        }
+
+        GpeXruptInfo = GpeXruptInfo->Next;
+    }
+
+UnlockAndExit:
+    AcpiOsReleaseLock (AcpiGbl_GpeLock, Flags);
+    return_ACPI_STATUS (Status);
+}
 
 
 /*******************************************************************************
  *
- * FUNCTION:    AcpiInitializeSubsystem
+ * FUNCTION:    AcpiEvGetGpeDevice
  *
- * PARAMETERS:  None
+ * PARAMETERS:  GPE_WALK_CALLBACK
  *
  * RETURN:      Status
  *
- * DESCRIPTION: Initializes all global variables. This is the first function
- *              called, so any early initialization belongs here.
+ * DESCRIPTION: Matches the input GPE index (0-CurrentGpeCount) with a GPE
+ *              block device. NULL if the GPE is one of the FADT-defined GPEs.
  *
  ******************************************************************************/
 
-ACPI_STATUS ACPI_INIT_FUNCTION
-AcpiInitializeSubsystem (
-    void)
+ACPI_STATUS
+AcpiEvGetGpeDevice (
+    ACPI_GPE_XRUPT_INFO     *GpeXruptInfo,
+    ACPI_GPE_BLOCK_INFO     *GpeBlock,
+    void                    *Context)
+{
+    ACPI_GPE_DEVICE_INFO    *Info = Context;
+
+
+    /* Increment Index by the number of GPEs in this block */
+
+    Info->NextBlockBaseIndex += GpeBlock->GpeCount;
+
+    if (Info->Index < Info->NextBlockBaseIndex)
+    {
+        /*
+         * The GPE index is within this block, get the node. Leave the node
+         * NULL for the FADT-defined GPEs
+         */
+        if ((GpeBlock->Node)->Type == ACPI_TYPE_DEVICE)
+        {
+            Info->GpeDevice = GpeBlock->Node;
+        }
+
+        Info->Status = AE_OK;
+        return (AE_CTRL_END);
+    }
+
+    return (AE_OK);
+}
+
+#ifndef ACPI_EXCLUDE
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiEvGetGpeXruptBlock
+ *
+ * PARAMETERS:  InterruptNumber             - Interrupt for a GPE block
+ *              GpeXruptBlock               - Where the block is returned
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Get or Create a GPE interrupt block. There is one interrupt
+ *              block per unique interrupt level used for GPEs. Should be
+ *              called only when the GPE lists are semaphore locked and not
+ *              subject to change.
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AcpiEvGetGpeXruptBlock (
+    UINT32                  InterruptNumber,
+    ACPI_GPE_XRUPT_INFO     **GpeXruptBlock)
+{
+    ACPI_GPE_XRUPT_INFO     *NextGpeXrupt;
+    ACPI_GPE_XRUPT_INFO     *GpeXrupt;
+    ACPI_STATUS             Status;
+    ACPI_CPU_FLAGS          Flags;
+
+
+    ACPI_FUNCTION_TRACE (EvGetGpeXruptBlock);
+
+
+    /* No need for lock since we are not changing any list elements here */
+
+    NextGpeXrupt = AcpiGbl_GpeXruptListHead;
+    while (NextGpeXrupt)
+    {
+        if (NextGpeXrupt->InterruptNumber == InterruptNumber)
+        {
+            *GpeXruptBlock = NextGpeXrupt;
+            return_ACPI_STATUS (AE_OK);
+        }
+
+        NextGpeXrupt = NextGpeXrupt->Next;
+    }
+
+    /* Not found, must allocate a new xrupt descriptor */
+
+    GpeXrupt = ACPI_ALLOCATE_ZEROED (sizeof (ACPI_GPE_XRUPT_INFO));
+    if (!GpeXrupt)
+    {
+        return_ACPI_STATUS (AE_NO_MEMORY);
+    }
+
+    GpeXrupt->InterruptNumber = InterruptNumber;
+
+    /* Install new interrupt descriptor with spin lock */
+
+    Flags = AcpiOsAcquireLock (AcpiGbl_GpeLock);
+    if (AcpiGbl_GpeXruptListHead)
+    {
+        NextGpeXrupt = AcpiGbl_GpeXruptListHead;
+        while (NextGpeXrupt->Next)
+        {
+            NextGpeXrupt = NextGpeXrupt->Next;
+        }
+
+        NextGpeXrupt->Next = GpeXrupt;
+        GpeXrupt->Previous = NextGpeXrupt;
+    }
+    else
+    {
+        AcpiGbl_GpeXruptListHead = GpeXrupt;
+    }
+
+    AcpiOsReleaseLock (AcpiGbl_GpeLock, Flags);
+
+    /* Install new interrupt handler if not SCI_INT */
+
+    if (InterruptNumber != AcpiGbl_FADT.SciInterrupt)
+    {
+        Status = AcpiOsInstallInterruptHandler (InterruptNumber,
+            AcpiEvGpeXruptHandler, GpeXrupt);
+        if (ACPI_FAILURE (Status))
+        {
+            ACPI_EXCEPTION ((AE_INFO, Status,
+                "Could not install GPE interrupt handler at level 0x%X",
+                InterruptNumber));
+            return_ACPI_STATUS (Status);
+        }
+    }
+
+    *GpeXruptBlock = GpeXrupt;
+    return_ACPI_STATUS (AE_OK);
+}
+#endif /* ACPI_EXCLUDE */
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiEvDeleteGpeXrupt
+ *
+ * PARAMETERS:  GpeXrupt        - A GPE interrupt info block
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Remove and free a GpeXrupt block. Remove an associated
+ *              interrupt handler if not the SCI interrupt.
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AcpiEvDeleteGpeXrupt (
+    ACPI_GPE_XRUPT_INFO     *GpeXrupt)
 {
     ACPI_STATUS             Status;
+    ACPI_CPU_FLAGS          Flags;
 
 
-    ACPI_FUNCTION_TRACE (AcpiInitializeSubsystem);
+    ACPI_FUNCTION_TRACE (EvDeleteGpeXrupt);
 
 
-    AcpiGbl_StartupFlags = ACPI_SUBSYSTEM_INITIALIZE;
-    ACPI_DEBUG_EXEC (AcpiUtInitStackPtrTrace ());
+    /* We never want to remove the SCI interrupt handler */
 
-    /* Initialize the OS-Dependent layer */
+    if (GpeXrupt->InterruptNumber == AcpiGbl_FADT.SciInterrupt)
+    {
+        GpeXrupt->GpeBlockListHead = NULL;
+        return_ACPI_STATUS (AE_OK);
+    }
 
-    Status = AcpiOsInitialize ();
+    /* Disable this interrupt */
+
+    Status = AcpiOsRemoveInterruptHandler (
+        GpeXrupt->InterruptNumber, AcpiEvGpeXruptHandler);
     if (ACPI_FAILURE (Status))
     {
-        ACPI_EXCEPTION ((AE_INFO, Status, "During OSL initialization"));
         return_ACPI_STATUS (Status);
     }
 
-    /* Initialize all globals used by the subsystem */
+    /* Unlink the interrupt block with lock */
 
-    Status = AcpiUtInitGlobals ();
-    if (ACPI_FAILURE (Status))
+    Flags = AcpiOsAcquireLock (AcpiGbl_GpeLock);
+    if (GpeXrupt->Previous)
     {
-        ACPI_EXCEPTION ((AE_INFO, Status, "During initialization of globals"));
-        return_ACPI_STATUS (Status);
+        GpeXrupt->Previous->Next = GpeXrupt->Next;
+    }
+    else
+    {
+        /* No previous, update list head */
+
+        AcpiGbl_GpeXruptListHead = GpeXrupt->Next;
     }
 
-    /* Create the default mutex objects */
-
-    Status = AcpiUtMutexInitialize ();
-    if (ACPI_FAILURE (Status))
+    if (GpeXrupt->Next)
     {
-        ACPI_EXCEPTION ((AE_INFO, Status, "During Global Mutex creation"));
-        return_ACPI_STATUS (Status);
+        GpeXrupt->Next->Previous = GpeXrupt->Previous;
     }
+    AcpiOsReleaseLock (AcpiGbl_GpeLock, Flags);
 
-    /*
-     * Initialize the namespace manager and
-     * the root of the namespace tree
-     */
-    Status = AcpiNsRootInitialize ();
-    if (ACPI_FAILURE (Status))
+    /* Free the block */
+
+    ACPI_FREE (GpeXrupt);
+    return_ACPI_STATUS (AE_OK);
+}
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiEvDeleteGpeHandlers
+ *
+ * PARAMETERS:  GpeXruptInfo        - GPE Interrupt info
+ *              GpeBlock            - Gpe Block info
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Delete all Handler objects found in the GPE data structs.
+ *              Used only prior to termination.
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AcpiEvDeleteGpeHandlers (
+    ACPI_GPE_XRUPT_INFO     *GpeXruptInfo,
+    ACPI_GPE_BLOCK_INFO     *GpeBlock,
+    void                    *Context)
+{
+    ACPI_GPE_EVENT_INFO     *GpeEventInfo;
+    ACPI_GPE_NOTIFY_INFO    *Notify;
+    ACPI_GPE_NOTIFY_INFO    *Next;
+    UINT32                  i;
+    UINT32                  j;
+
+
+    ACPI_FUNCTION_TRACE (EvDeleteGpeHandlers);
+
+
+    /* Examine each GPE Register within the block */
+
+    for (i = 0; i < GpeBlock->RegisterCount; i++)
     {
-        ACPI_EXCEPTION ((AE_INFO, Status, "During Namespace initialization"));
-        return_ACPI_STATUS (Status);
-    }
+        /* Now look at the individual GPEs in this byte register */
 
-    /* Initialize the global OSI interfaces list with the static names */
+        for (j = 0; j < ACPI_GPE_REGISTER_WIDTH; j++)
+        {
+            GpeEventInfo = &GpeBlock->EventInfo[((ACPI_SIZE) i *
+                ACPI_GPE_REGISTER_WIDTH) + j];
 
-    Status = AcpiUtInitializeInterfaces ();
-    if (ACPI_FAILURE (Status))
-    {
-        ACPI_EXCEPTION ((AE_INFO, Status, "During OSI interfaces initialization"));
-        return_ACPI_STATUS (Status);
+            if ((ACPI_GPE_DISPATCH_TYPE (GpeEventInfo->Flags) ==
+                    ACPI_GPE_DISPATCH_HANDLER) ||
+                (ACPI_GPE_DISPATCH_TYPE (GpeEventInfo->Flags) ==
+                    ACPI_GPE_DISPATCH_RAW_HANDLER))
+            {
+                /* Delete an installed handler block */
+
+                ACPI_FREE (GpeEventInfo->Dispatch.Handler);
+                GpeEventInfo->Dispatch.Handler = NULL;
+                GpeEventInfo->Flags &= ~ACPI_GPE_DISPATCH_MASK;
+            }
+            else if (ACPI_GPE_DISPATCH_TYPE (GpeEventInfo->Flags) ==
+                ACPI_GPE_DISPATCH_NOTIFY)
+            {
+                /* Delete the implicit notification device list */
+
+                Notify = GpeEventInfo->Dispatch.NotifyList;
+                while (Notify)
+                {
+                    Next = Notify->Next;
+                    ACPI_FREE (Notify);
+                    Notify = Next;
+                }
+
+                GpeEventInfo->Dispatch.NotifyList = NULL;
+                GpeEventInfo->Flags &= ~ACPI_GPE_DISPATCH_MASK;
+            }
+        }
     }
 
     return_ACPI_STATUS (AE_OK);
 }
 
-ACPI_EXPORT_SYMBOL_INIT (AcpiInitializeSubsystem)
-
-#ifndef ACPI_EXCLUDE
-/*******************************************************************************
- *
- * FUNCTION:    AcpiEnableSubsystem
- *
- * PARAMETERS:  Flags               - Init/enable Options
- *
- * RETURN:      Status
- *
- * DESCRIPTION: Completes the subsystem initialization including hardware.
- *              Puts system into ACPI mode if it isn't already.
- *
- ******************************************************************************/
-
-ACPI_STATUS ACPI_INIT_FUNCTION
-AcpiEnableSubsystem (
-    UINT32                  Flags)
-{
-    ACPI_STATUS             Status = AE_OK;
-
-
-    ACPI_FUNCTION_TRACE (AcpiEnableSubsystem);
-
-
-    /*
-     * The early initialization phase is complete. The namespace is loaded,
-     * and we can now support address spaces other than Memory, I/O, and
-     * PCI_Config.
-     */
-    AcpiGbl_EarlyInitialization = FALSE;
-
-    /*
-     * Obtain a permanent mapping for the FACS. This is required for the
-     * Global Lock and the Firmware Waking Vector
-     */
-    if (!(Flags & ACPI_NO_FACS_INIT))
-    {
-        Status = AcpiTbInitializeFacs ();
-        if (ACPI_FAILURE (Status))
-        {
-            ACPI_WARNING ((AE_INFO, "Could not map the FACS table"));
-            return_ACPI_STATUS (Status);
-        }
-    }
-
-#if (!ACPI_REDUCED_HARDWARE)
-
-    /* Enable ACPI mode */
-
-    if (!(Flags & ACPI_NO_ACPI_ENABLE))
-    {
-        ACPI_DEBUG_PRINT ((ACPI_DB_EXEC, "[Init] Going into ACPI mode\n"));
-
-        AcpiGbl_OriginalMode = AcpiHwGetMode();
-
-        Status = AcpiEnable ();
-        if (ACPI_FAILURE (Status))
-        {
-            ACPI_WARNING ((AE_INFO, "AcpiEnable failed"));
-            return_ACPI_STATUS (Status);
-        }
-    }
-
-    /*
-     * Initialize ACPI Event handling (Fixed and General Purpose)
-     *
-     * Note1: We must have the hardware and events initialized before we can
-     * execute any control methods safely. Any control method can require
-     * ACPI hardware support, so the hardware must be fully initialized before
-     * any method execution!
-     *
-     * Note2: Fixed events are initialized and enabled here. GPEs are
-     * initialized, but cannot be enabled until after the hardware is
-     * completely initialized (SCI and GlobalLock activated) and the various
-     * initialization control methods are run (_REG, _STA, _INI) on the
-     * entire namespace.
-     */
-    if (!(Flags & ACPI_NO_EVENT_INIT))
-    {
-        ACPI_DEBUG_PRINT ((ACPI_DB_EXEC,
-            "[Init] Initializing ACPI events\n"));
-
-        Status = AcpiEvInitializeEvents ();
-        if (ACPI_FAILURE (Status))
-        {
-            return_ACPI_STATUS (Status);
-        }
-    }
-
-    /*
-     * Install the SCI handler and Global Lock handler. This completes the
-     * hardware initialization.
-     */
-    if (!(Flags & ACPI_NO_HANDLER_INIT))
-    {
-        ACPI_DEBUG_PRINT ((ACPI_DB_EXEC,
-            "[Init] Installing SCI/GL handlers\n"));
-
-        Status = AcpiEvInstallXruptHandlers ();
-        if (ACPI_FAILURE (Status))
-        {
-            return_ACPI_STATUS (Status);
-        }
-    }
-
 #endif /* !ACPI_REDUCED_HARDWARE */
-
-    return_ACPI_STATUS (Status);
-}
-
-ACPI_EXPORT_SYMBOL_INIT (AcpiEnableSubsystem)
-
-/*******************************************************************************
- *
- * FUNCTION:    AcpiInitializeObjects
- *
- * PARAMETERS:  Flags               - Init/enable Options
- *
- * RETURN:      Status
- *
- * DESCRIPTION: Completes namespace initialization by initializing device
- *              objects and executing AML code for Regions, buffers, etc.
- *
- ******************************************************************************/
-
-ACPI_STATUS ACPI_INIT_FUNCTION
-AcpiInitializeObjects (
-    UINT32                  Flags)
-{
-    ACPI_STATUS             Status = AE_OK;
-
-
-    ACPI_FUNCTION_TRACE (AcpiInitializeObjects);
-
-
-#ifdef ACPI_OBSOLETE_BEHAVIOR
-    /*
-     * 05/2019: Removed, initialization now happens at both object
-     * creation and table load time
-     */
-
-    /*
-     * Initialize the objects that remain uninitialized. This
-     * runs the executable AML that may be part of the
-     * declaration of these objects: OperationRegions, BufferFields,
-     * BankFields, Buffers, and Packages.
-     */
-    if (!(Flags & ACPI_NO_OBJECT_INIT))
-    {
-        Status = AcpiNsInitializeObjects ();
-        if (ACPI_FAILURE (Status))
-        {
-            return_ACPI_STATUS (Status);
-        }
-    }
-#endif
-
-    /*
-     * Initialize all device/region objects in the namespace. This runs
-     * the device _STA and _INI methods and region _REG methods.
-     */
-    if (!(Flags & (ACPI_NO_DEVICE_INIT | ACPI_NO_ADDRESS_SPACE_INIT)))
-    {
-        Status = AcpiNsInitializeDevices (Flags);
-        if (ACPI_FAILURE (Status))
-        {
-            return_ACPI_STATUS (Status);
-        }
-    }
-
-    /*
-     * Empty the caches (delete the cached objects) on the assumption that
-     * the table load filled them up more than they will be at runtime --
-     * thus wasting non-paged memory.
-     */
-    Status = AcpiPurgeCachedObjects ();
-
-    AcpiGbl_StartupFlags |= ACPI_INITIALIZED_OK;
-    return_ACPI_STATUS (Status);
-}
-
-ACPI_EXPORT_SYMBOL_INIT (AcpiInitializeObjects)
-#endif /* ACPI_EXCLUDE */

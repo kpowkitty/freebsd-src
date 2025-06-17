@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Module Name: utxfinit - External interfaces for ACPICA initialization
+ * Module Name: utalloc - local memory allocation routines
  *
  *****************************************************************************/
 
@@ -149,282 +149,369 @@
  *
  *****************************************************************************/
 
-#define EXPORT_ACPI_INTERFACES
-
 #include <acpi.h>
 #include <accommon.h>
-#include <acevents.h>
-#include <acnamesp.h>
 #include <acdebug.h>
-#include <actables.h>
 
 #define _COMPONENT          ACPI_UTILITIES
-        ACPI_MODULE_NAME    ("utxfinit")
+        ACPI_MODULE_NAME    ("utalloc")
 
-/* For AcpiExec only */
-void
-AeDoObjectOverrides (
-    void);
+
+#if !defined (USE_NATIVE_ALLOCATE_ZEROED)
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiOsAllocateZeroed
+ *
+ * PARAMETERS:  Size                - Size of the allocation
+ *
+ * RETURN:      Address of the allocated memory on success, NULL on failure.
+ *
+ * DESCRIPTION: Subsystem equivalent of calloc. Allocate and zero memory.
+ *              This is the default implementation. Can be overridden via the
+ *              USE_NATIVE_ALLOCATE_ZEROED flag.
+ *
+ ******************************************************************************/
+
+void *
+AcpiOsAllocateZeroed (
+    ACPI_SIZE               Size)
+{
+    void                    *Allocation;
+
+
+    ACPI_FUNCTION_ENTRY ();
+
+
+    Allocation = AcpiOsAllocate (Size);
+    if (Allocation)
+    {
+        /* Clear the memory block */
+
+        memset (Allocation, 0, Size);
+    }
+
+    return (Allocation);
+}
+
+#endif /* !USE_NATIVE_ALLOCATE_ZEROED */
 
 
 /*******************************************************************************
  *
- * FUNCTION:    AcpiInitializeSubsystem
+ * FUNCTION:    AcpiUtCreateCaches
  *
  * PARAMETERS:  None
  *
  * RETURN:      Status
  *
- * DESCRIPTION: Initializes all global variables. This is the first function
- *              called, so any early initialization belongs here.
+ * DESCRIPTION: Create all local caches
  *
  ******************************************************************************/
 
-ACPI_STATUS ACPI_INIT_FUNCTION
-AcpiInitializeSubsystem (
+ACPI_STATUS
+AcpiUtCreateCaches (
     void)
 {
     ACPI_STATUS             Status;
 
 
-    ACPI_FUNCTION_TRACE (AcpiInitializeSubsystem);
+    /* Object Caches, for frequently used objects */
 
-
-    AcpiGbl_StartupFlags = ACPI_SUBSYSTEM_INITIALIZE;
-    ACPI_DEBUG_EXEC (AcpiUtInitStackPtrTrace ());
-
-    /* Initialize the OS-Dependent layer */
-
-    Status = AcpiOsInitialize ();
+    Status = AcpiOsCreateCache ("Acpi-Namespace", sizeof (ACPI_NAMESPACE_NODE),
+        ACPI_MAX_NAMESPACE_CACHE_DEPTH, &AcpiGbl_NamespaceCache);
     if (ACPI_FAILURE (Status))
     {
-        ACPI_EXCEPTION ((AE_INFO, Status, "During OSL initialization"));
-        return_ACPI_STATUS (Status);
+        return (Status);
     }
 
-    /* Initialize all globals used by the subsystem */
-
-    Status = AcpiUtInitGlobals ();
+    Status = AcpiOsCreateCache ("Acpi-State", sizeof (ACPI_GENERIC_STATE),
+        ACPI_MAX_STATE_CACHE_DEPTH, &AcpiGbl_StateCache);
     if (ACPI_FAILURE (Status))
     {
-        ACPI_EXCEPTION ((AE_INFO, Status, "During initialization of globals"));
-        return_ACPI_STATUS (Status);
+        return (Status);
     }
 
-    /* Create the default mutex objects */
-
-    Status = AcpiUtMutexInitialize ();
+    Status = AcpiOsCreateCache ("Acpi-Parse", sizeof (ACPI_PARSE_OBJ_COMMON),
+        ACPI_MAX_PARSE_CACHE_DEPTH, &AcpiGbl_PsNodeCache);
     if (ACPI_FAILURE (Status))
     {
-        ACPI_EXCEPTION ((AE_INFO, Status, "During Global Mutex creation"));
-        return_ACPI_STATUS (Status);
+        return (Status);
     }
 
-    /*
-     * Initialize the namespace manager and
-     * the root of the namespace tree
-     */
-    Status = AcpiNsRootInitialize ();
+    Status = AcpiOsCreateCache ("Acpi-ParseExt", sizeof (ACPI_PARSE_OBJ_NAMED),
+        ACPI_MAX_EXTPARSE_CACHE_DEPTH, &AcpiGbl_PsNodeExtCache);
     if (ACPI_FAILURE (Status))
     {
-        ACPI_EXCEPTION ((AE_INFO, Status, "During Namespace initialization"));
-        return_ACPI_STATUS (Status);
+        return (Status);
     }
 
-    /* Initialize the global OSI interfaces list with the static names */
-
-    Status = AcpiUtInitializeInterfaces ();
+    Status = AcpiOsCreateCache ("Acpi-Operand", sizeof (ACPI_OPERAND_OBJECT),
+        ACPI_MAX_OBJECT_CACHE_DEPTH, &AcpiGbl_OperandCache);
     if (ACPI_FAILURE (Status))
     {
-        ACPI_EXCEPTION ((AE_INFO, Status, "During OSI interfaces initialization"));
-        return_ACPI_STATUS (Status);
+        return (Status);
     }
 
-    return_ACPI_STATUS (AE_OK);
-}
-
-ACPI_EXPORT_SYMBOL_INIT (AcpiInitializeSubsystem)
-
-#ifndef ACPI_EXCLUDE
-/*******************************************************************************
- *
- * FUNCTION:    AcpiEnableSubsystem
- *
- * PARAMETERS:  Flags               - Init/enable Options
- *
- * RETURN:      Status
- *
- * DESCRIPTION: Completes the subsystem initialization including hardware.
- *              Puts system into ACPI mode if it isn't already.
- *
- ******************************************************************************/
-
-ACPI_STATUS ACPI_INIT_FUNCTION
-AcpiEnableSubsystem (
-    UINT32                  Flags)
-{
-    ACPI_STATUS             Status = AE_OK;
-
-
-    ACPI_FUNCTION_TRACE (AcpiEnableSubsystem);
-
-
+#ifdef ACPI_ASL_COMPILER
     /*
-     * The early initialization phase is complete. The namespace is loaded,
-     * and we can now support address spaces other than Memory, I/O, and
-     * PCI_Config.
+     * For use with the ASL-/ASL+ option. This cache keeps track of regular
+     * 0xA9 0x01 comments.
      */
-    AcpiGbl_EarlyInitialization = FALSE;
-
-    /*
-     * Obtain a permanent mapping for the FACS. This is required for the
-     * Global Lock and the Firmware Waking Vector
-     */
-    if (!(Flags & ACPI_NO_FACS_INIT))
+    Status = AcpiOsCreateCache ("Acpi-Comment", sizeof (ACPI_COMMENT_NODE),
+        ACPI_MAX_COMMENT_CACHE_DEPTH, &AcpiGbl_RegCommentCache);
+    if (ACPI_FAILURE (Status))
     {
-        Status = AcpiTbInitializeFacs ();
-        if (ACPI_FAILURE (Status))
-        {
-            ACPI_WARNING ((AE_INFO, "Could not map the FACS table"));
-            return_ACPI_STATUS (Status);
-        }
-    }
-
-#if (!ACPI_REDUCED_HARDWARE)
-
-    /* Enable ACPI mode */
-
-    if (!(Flags & ACPI_NO_ACPI_ENABLE))
-    {
-        ACPI_DEBUG_PRINT ((ACPI_DB_EXEC, "[Init] Going into ACPI mode\n"));
-
-        AcpiGbl_OriginalMode = AcpiHwGetMode();
-
-        Status = AcpiEnable ();
-        if (ACPI_FAILURE (Status))
-        {
-            ACPI_WARNING ((AE_INFO, "AcpiEnable failed"));
-            return_ACPI_STATUS (Status);
-        }
+        return (Status);
     }
 
     /*
-     * Initialize ACPI Event handling (Fixed and General Purpose)
-     *
-     * Note1: We must have the hardware and events initialized before we can
-     * execute any control methods safely. Any control method can require
-     * ACPI hardware support, so the hardware must be fully initialized before
-     * any method execution!
-     *
-     * Note2: Fixed events are initialized and enabled here. GPEs are
-     * initialized, but cannot be enabled until after the hardware is
-     * completely initialized (SCI and GlobalLock activated) and the various
-     * initialization control methods are run (_REG, _STA, _INI) on the
-     * entire namespace.
+     * This cache keeps track of the starting addresses of where the comments
+     * lie. This helps prevent duplication of comments.
      */
-    if (!(Flags & ACPI_NO_EVENT_INIT))
+    Status = AcpiOsCreateCache ("Acpi-Comment-Addr", sizeof (ACPI_COMMENT_ADDR_NODE),
+        ACPI_MAX_COMMENT_CACHE_DEPTH, &AcpiGbl_CommentAddrCache);
+    if (ACPI_FAILURE (Status))
     {
-        ACPI_DEBUG_PRINT ((ACPI_DB_EXEC,
-            "[Init] Initializing ACPI events\n"));
-
-        Status = AcpiEvInitializeEvents ();
-        if (ACPI_FAILURE (Status))
-        {
-            return_ACPI_STATUS (Status);
-        }
+        return (Status);
     }
 
     /*
-     * Install the SCI handler and Global Lock handler. This completes the
-     * hardware initialization.
+     * This cache will be used for nodes that represent files.
      */
-    if (!(Flags & ACPI_NO_HANDLER_INIT))
+    Status = AcpiOsCreateCache ("Acpi-File", sizeof (ACPI_FILE_NODE),
+        ACPI_MAX_COMMENT_CACHE_DEPTH, &AcpiGbl_FileCache);
+    if (ACPI_FAILURE (Status))
     {
-        ACPI_DEBUG_PRINT ((ACPI_DB_EXEC,
-            "[Init] Installing SCI/GL handlers\n"));
-
-        Status = AcpiEvInstallXruptHandlers ();
-        if (ACPI_FAILURE (Status))
-        {
-            return_ACPI_STATUS (Status);
-        }
-    }
-
-#endif /* !ACPI_REDUCED_HARDWARE */
-
-    return_ACPI_STATUS (Status);
-}
-
-ACPI_EXPORT_SYMBOL_INIT (AcpiEnableSubsystem)
-
-/*******************************************************************************
- *
- * FUNCTION:    AcpiInitializeObjects
- *
- * PARAMETERS:  Flags               - Init/enable Options
- *
- * RETURN:      Status
- *
- * DESCRIPTION: Completes namespace initialization by initializing device
- *              objects and executing AML code for Regions, buffers, etc.
- *
- ******************************************************************************/
-
-ACPI_STATUS ACPI_INIT_FUNCTION
-AcpiInitializeObjects (
-    UINT32                  Flags)
-{
-    ACPI_STATUS             Status = AE_OK;
-
-
-    ACPI_FUNCTION_TRACE (AcpiInitializeObjects);
-
-
-#ifdef ACPI_OBSOLETE_BEHAVIOR
-    /*
-     * 05/2019: Removed, initialization now happens at both object
-     * creation and table load time
-     */
-
-    /*
-     * Initialize the objects that remain uninitialized. This
-     * runs the executable AML that may be part of the
-     * declaration of these objects: OperationRegions, BufferFields,
-     * BankFields, Buffers, and Packages.
-     */
-    if (!(Flags & ACPI_NO_OBJECT_INIT))
-    {
-        Status = AcpiNsInitializeObjects ();
-        if (ACPI_FAILURE (Status))
-        {
-            return_ACPI_STATUS (Status);
-        }
+        return (Status);
     }
 #endif
 
-    /*
-     * Initialize all device/region objects in the namespace. This runs
-     * the device _STA and _INI methods and region _REG methods.
-     */
-    if (!(Flags & (ACPI_NO_DEVICE_INIT | ACPI_NO_ADDRESS_SPACE_INIT)))
+
+#ifdef ACPI_DBG_TRACK_ALLOCATIONS
+
+    /* Memory allocation lists */
+
+    Status = AcpiUtCreateList ("Acpi-Global", 0,
+        &AcpiGbl_GlobalList);
+    if (ACPI_FAILURE (Status))
     {
-        Status = AcpiNsInitializeDevices (Flags);
-        if (ACPI_FAILURE (Status))
-        {
-            return_ACPI_STATUS (Status);
-        }
+        return (Status);
+    }
+
+    Status = AcpiUtCreateList ("Acpi-Namespace", sizeof (ACPI_NAMESPACE_NODE),
+        &AcpiGbl_NsNodeList);
+    if (ACPI_FAILURE (Status))
+    {
+        return (Status);
+    }
+#endif
+
+    return (AE_OK);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiUtDeleteCaches
+ *
+ * PARAMETERS:  None
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Purge and delete all local caches
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AcpiUtDeleteCaches (
+    void)
+{
+#ifdef ACPI_DBG_TRACK_ALLOCATIONS
+    char                    Buffer[7];
+
+
+    if (AcpiGbl_DisplayFinalMemStats)
+    {
+        strcpy (Buffer, "MEMORY");
+        (void) AcpiDbDisplayStatistics (Buffer);
+    }
+#endif
+
+    (void) AcpiOsDeleteCache (AcpiGbl_NamespaceCache);
+    AcpiGbl_NamespaceCache = NULL;
+
+    (void) AcpiOsDeleteCache (AcpiGbl_StateCache);
+    AcpiGbl_StateCache = NULL;
+
+    (void) AcpiOsDeleteCache (AcpiGbl_OperandCache);
+    AcpiGbl_OperandCache = NULL;
+
+    (void) AcpiOsDeleteCache (AcpiGbl_PsNodeCache);
+    AcpiGbl_PsNodeCache = NULL;
+
+    (void) AcpiOsDeleteCache (AcpiGbl_PsNodeExtCache);
+    AcpiGbl_PsNodeExtCache = NULL;
+
+#ifdef ACPI_ASL_COMPILER
+    (void) AcpiOsDeleteCache (AcpiGbl_RegCommentCache);
+    AcpiGbl_RegCommentCache = NULL;
+
+    (void) AcpiOsDeleteCache (AcpiGbl_CommentAddrCache);
+    AcpiGbl_CommentAddrCache = NULL;
+
+    (void) AcpiOsDeleteCache (AcpiGbl_FileCache);
+    AcpiGbl_FileCache = NULL;
+#endif
+
+#ifdef ACPI_DBG_TRACK_ALLOCATIONS
+
+    /* Debug only - display leftover memory allocation, if any */
+
+    AcpiUtDumpAllocations (ACPI_UINT32_MAX, NULL);
+
+    /* Free memory lists */
+
+    AcpiOsFree (AcpiGbl_GlobalList);
+    AcpiGbl_GlobalList = NULL;
+
+    AcpiOsFree (AcpiGbl_NsNodeList);
+    AcpiGbl_NsNodeList = NULL;
+#endif
+
+    return (AE_OK);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiUtValidateBuffer
+ *
+ * PARAMETERS:  Buffer              - Buffer descriptor to be validated
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Perform parameter validation checks on an ACPI_BUFFER
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AcpiUtValidateBuffer (
+    ACPI_BUFFER             *Buffer)
+{
+
+    /* Obviously, the structure pointer must be valid */
+
+    if (!Buffer)
+    {
+        return (AE_BAD_PARAMETER);
+    }
+
+    /* Special semantics for the length */
+
+    if ((Buffer->Length == ACPI_NO_BUFFER)              ||
+        (Buffer->Length == ACPI_ALLOCATE_BUFFER)        ||
+        (Buffer->Length == ACPI_ALLOCATE_LOCAL_BUFFER))
+    {
+        return (AE_OK);
+    }
+
+    /* Length is valid, the buffer pointer must be also */
+
+    if (!Buffer->Pointer)
+    {
+        return (AE_BAD_PARAMETER);
+    }
+
+    return (AE_OK);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiUtInitializeBuffer
+ *
+ * PARAMETERS:  Buffer              - Buffer to be validated
+ *              RequiredLength      - Length needed
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Validate that the buffer is of the required length or
+ *              allocate a new buffer. Returned buffer is always zeroed.
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AcpiUtInitializeBuffer (
+    ACPI_BUFFER             *Buffer,
+    ACPI_SIZE               RequiredLength)
+{
+    ACPI_SIZE               InputBufferLength;
+
+
+    /* Parameter validation */
+
+    if (!Buffer || !RequiredLength)
+    {
+        return (AE_BAD_PARAMETER);
     }
 
     /*
-     * Empty the caches (delete the cached objects) on the assumption that
-     * the table load filled them up more than they will be at runtime --
-     * thus wasting non-paged memory.
+     * Buffer->Length is used as both an input and output parameter. Get the
+     * input actual length and set the output required buffer length.
      */
-    Status = AcpiPurgeCachedObjects ();
+    InputBufferLength = Buffer->Length;
+    Buffer->Length = RequiredLength;
 
-    AcpiGbl_StartupFlags |= ACPI_INITIALIZED_OK;
-    return_ACPI_STATUS (Status);
+    /*
+     * The input buffer length contains the actual buffer length, or the type
+     * of buffer to be allocated by this routine.
+     */
+    switch (InputBufferLength)
+    {
+    case ACPI_NO_BUFFER:
+
+        /* Return the exception (and the required buffer length) */
+
+        return (AE_BUFFER_OVERFLOW);
+
+    case ACPI_ALLOCATE_BUFFER:
+        /*
+         * Allocate a new buffer. We directectly call AcpiOsAllocate here to
+         * purposefully bypass the (optionally enabled) internal allocation
+         * tracking mechanism since we only want to track internal
+         * allocations. Note: The caller should use AcpiOsFree to free this
+         * buffer created via ACPI_ALLOCATE_BUFFER.
+         */
+        Buffer->Pointer = AcpiOsAllocate (RequiredLength);
+        break;
+
+    case ACPI_ALLOCATE_LOCAL_BUFFER:
+
+        /* Allocate a new buffer with local interface to allow tracking */
+
+        Buffer->Pointer = ACPI_ALLOCATE (RequiredLength);
+        break;
+
+    default:
+
+        /* Existing buffer: Validate the size of the buffer */
+
+        if (InputBufferLength < RequiredLength)
+        {
+            return (AE_BUFFER_OVERFLOW);
+        }
+        break;
+    }
+
+    /* Validate allocation from above or input buffer pointer */
+
+    if (!Buffer->Pointer)
+    {
+        return (AE_NO_MEMORY);
+    }
+
+    /* Have a valid buffer, clear it */
+
+    memset (Buffer->Pointer, 0, RequiredLength);
+    return (AE_OK);
 }
-
-ACPI_EXPORT_SYMBOL_INIT (AcpiInitializeObjects)
-#endif /* ACPI_EXCLUDE */

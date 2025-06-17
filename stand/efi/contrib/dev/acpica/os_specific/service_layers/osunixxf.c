@@ -623,10 +623,12 @@ AcpiOsGetLine (
             return (AE_BUFFER_OVERFLOW);
         }
 
+	/* EOF DNE - XXX
         if ((InputChar = getchar ()) == EOF)
         {
             return (AE_ERROR);
         }
+	*/
 
         if (!InputChar || InputChar == _ASCII_NEWLINE)
         {
@@ -700,8 +702,8 @@ AcpiOsUnmapMemory (
 }
 #endif
 
-
-/******************************************************************************
+/* XXX
+******************************************************************************
  *
  * FUNCTION:    AcpiOsAllocate
  *
@@ -711,7 +713,7 @@ AcpiOsUnmapMemory (
  *
  * DESCRIPTION: Allocate memory. Algorithm is dependent on the OS.
  *
- *****************************************************************************/
+ *****************************************************************************
 
 void *
 AcpiOsAllocate (
@@ -723,7 +725,7 @@ AcpiOsAllocate (
     Mem = (void *) malloc ((size_t) size);
     return (Mem);
 }
-
+*/
 
 #ifdef USE_NATIVE_ALLOCATE_ZEROED
 /******************************************************************************
@@ -750,8 +752,8 @@ AcpiOsAllocateZeroed (
 }
 #endif
 
-
-/******************************************************************************
+/* XXX
+******************************************************************************
  *
  * FUNCTION:    AcpiOsFree
  *
@@ -761,7 +763,7 @@ AcpiOsAllocateZeroed (
  *
  * DESCRIPTION: Free memory allocated via AcpiOsAllocate
  *
- *****************************************************************************/
+ *****************************************************************************
 
 void
 AcpiOsFree (
@@ -770,7 +772,7 @@ AcpiOsFree (
 
     free (mem);
 }
-
+*/
 
 #ifdef ACPI_SINGLE_THREADED
 /******************************************************************************

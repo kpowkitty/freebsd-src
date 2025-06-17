@@ -33,14 +33,26 @@ SRCS=	autoload.c \
 # ACPICA Loader Initialization
 # XXX Try to trim amount src'd if possible...
 CFLAGS+=	-UACPI_USE_SYSTEM_CLIBRARY \
-		-DACPI_SINGLE_THREADED
+		-DACPI_SINGLE_THREADED \
+		-DACPI_USE_NATIVE_RSDP_POINTER \
+		-DACPI_USE_NATIVE_MEMORY_MAPPING \
+		-DACPI_EXCLUDE
 
 SRCS+=	libefi.c \
 	OsdMemory.c \
+	utstate.c \
+	utglobal.c \
+	utinit.c \
+	utclib.c \
 	init_acpi.c \
+	nswalk.c \
+	nssearch.c \
+	nsnames.c \
+	nsutils.c \
 	nsaccess.c \
 	nsalloc.c \
 	nsobject.c \
+	tbdata.c \
 	tbfadt.c \
 	tbinstal.c \
 	tbprint.c \
@@ -48,7 +60,9 @@ SRCS+=	libefi.c \
 	tbxface.c \
 	tbxfroot.c \
 	tbfind.c \
-	utglobal.c \
+	utmisc.c \
+	utalloc.c \
+	utxferror.c \
 	utexcep.c \
 	utaddress.c \
 	utascii.c \
@@ -57,12 +71,18 @@ SRCS+=	libefi.c \
 	utdebug.c \
 	utdecode.c \
 	utdelete.c \
-	utinit.c \
 	utmutex.c \
 	utobject.c \
 	utosi.c \
 	utstring.c \
 	utxfinit.c \
+	evsci.c \
+	evgpeutil.c \
+	evgpeblk.c \
+	evmisc.c \
+	dswscope.c \
+	exmutex.c \
+	hwgpe.c \
 	osunixxf.c
 
 CFLAGS+=	-I${.CURDIR}/../loader
@@ -101,6 +121,10 @@ CWARNFLAGS.main.c+=	-Wno-format
 .PATH: ${.CURDIR}/../contrib/dev/acpica/components/tables
 .PATH: ${.CURDIR}/../contrib/dev/acpica/components/namespace
 .PATH: ${.CURDIR}/../contrib/dev/acpica/components/utilities
+.PATH: ${.CURDIR}/../contrib/dev/acpica/components/dispatcher
+.PATH: ${.CURDIR}/../contrib/dev/acpica/components/events
+.PATH: ${.CURDIR}/../contrib/dev/acpica/components/executer
+.PATH: ${.CURDIR}/../contrib/dev/acpica/components/hardware
 .include "${.CURDIR}/../loader/arch/${__arch}/Makefile.inc"
 
 CFLAGS+=	-I${.CURDIR}

@@ -1,8 +1,9 @@
-/******************************************************************************
+/*******************************************************************************
  *
- * Name: accommon.h - Common include files for generation of ACPICA source
+ * Module Name: evsci - System Control Interrupt configuration and
+ *                      legacy to ACPI mode state transition functions
  *
- *****************************************************************************/
+ ******************************************************************************/
 
 /******************************************************************************
  *
@@ -61,6 +62,7 @@
  * license from Licensee to its licensee is limited to the intellectual
  * property embodied in the software Licensee provides to its licensee, and
  * not to intellectual property embodied in modifications its licensee may
+
  * make.
  *
  * 3.3. Redistribution of Executable. Redistribution in executable form of any
@@ -149,27 +151,241 @@
  *
  *****************************************************************************/
 
-#ifndef __ACCOMMON_H__
-#define __ACCOMMON_H__
+#include <acpi.h>
+#include <accommon.h>
+#include <acevents.h>
 
-/*
- * Common set of includes for all ACPICA source files.
- * We put them here because we don't want to duplicate them
- * in the source code again and again.
+
+#define _COMPONENT          ACPI_EVENTS
+        ACPI_MODULE_NAME    ("evsci")
+
+#if (!ACPI_REDUCED_HARDWARE) /* Entire module */
+
+/* Local prototypes */
+
+static UINT32 ACPI_SYSTEM_XFACE
+AcpiEvSciXruptHandler (
+    void                    *Context);
+
+
+/*******************************************************************************
  *
- * Note: The order of these include files is important.
- */
-#include <acconfig.h>           /* Global configuration constants */
-#include <acmacros.h>           /* C macros */
-#include <aclocal.h>            /* Internal data types */
-#include <acobject.h>           /* ACPI internal object */
-#include <acstruct.h>           /* Common structures */
-#include <acglobal.h>           /* All global variables */
-#include <achware.h>            /* Hardware defines and interfaces */
-#include <acutils.h>            /* Utility interfaces */
-#ifndef ACPI_USE_SYSTEM_CLIBRARY
-#include <acclib.h>             /* C library interfaces */
-#endif /* !ACPI_USE_SYSTEM_CLIBRARY */
+ * FUNCTION:    AcpiEvSciDispatch
+ *
+ * PARAMETERS:  None
+ *
+ * RETURN:      Status code indicates whether interrupt was handled.
+ *
+ * DESCRIPTION: Dispatch the SCI to all host-installed SCI handlers.
+ *
+ ******************************************************************************/
+
+UINT32
+AcpiEvSciDispatch (
+    void)
+{
+    ACPI_SCI_HANDLER_INFO   *SciHandler;
+    ACPI_CPU_FLAGS          Flags;
+    UINT32                  IntStatus = ACPI_INTERRUPT_NOT_HANDLED;
 
 
-#endif /* __ACCOMMON_H__ */
+    ACPI_FUNCTION_NAME (EvSciDispatch);
+
+
+    /* Are there any host-installed SCI handlers? */
+
+    if (!AcpiGbl_SciHandlerList)
+    {
+        return (IntStatus);
+    }
+
+    Flags = AcpiOsAcquireLock (AcpiGbl_GpeLock);
+
+    /* Invoke all host-installed SCI handlers */
+
+    SciHandler = AcpiGbl_SciHandlerList;
+    while (SciHandler)
+    {
+        /* Invoke the installed handler (at interrupt level) */
+
+        IntStatus |= SciHandler->Address (
+            SciHandler->Context);
+
+        SciHandler = SciHandler->Next;
+    }
+
+    AcpiOsReleaseLock (AcpiGbl_GpeLock, Flags);
+    return (IntStatus);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiEvSciXruptHandler
+ *
+ * PARAMETERS:  Context   - Calling Context
+ *
+ * RETURN:      Status code indicates whether interrupt was handled.
+ *
+ * DESCRIPTION: Interrupt handler that will figure out what function or
+ *              control method to call to deal with a SCI.
+ *
+ ******************************************************************************/
+
+static UINT32 ACPI_SYSTEM_XFACE
+AcpiEvSciXruptHandler (
+    void                    *Context)
+{
+    ACPI_GPE_XRUPT_INFO     *GpeXruptList = Context;
+    UINT32                  InterruptHandled = ACPI_INTERRUPT_NOT_HANDLED;
+
+
+    ACPI_FUNCTION_TRACE (EvSciXruptHandler);
+
+
+    /*
+     * We are guaranteed by the ACPICA initialization/shutdown code that
+     * if this interrupt handler is installed, ACPI is enabled.
+     */
+
+    /*
+     * Fixed Events:
+     * Check for and dispatch any Fixed Events that have occurred
+     */
+    InterruptHandled |= AcpiEvFixedEventDetect ();
+
+    /*
+     * General Purpose Events:
+     * Check for and dispatch any GPEs that have occurred
+     */
+    InterruptHandled |= AcpiEvGpeDetect (GpeXruptList);
+
+    /* Invoke all host-installed SCI handlers */
+
+    InterruptHandled |= AcpiEvSciDispatch ();
+
+    AcpiSciCount++;
+    return_UINT32 (InterruptHandled);
+}
+
+
+/*******************************************************************************
+ *
+ * FUNCTION:    AcpiEvGpeXruptHandler
+ *
+ * PARAMETERS:  Context   - Calling Context
+ *
+ * RETURN:      Status code indicates whether interrupt was handled.
+ *
+ * DESCRIPTION: Handler for GPE Block Device interrupts
+ *
+ ******************************************************************************/
+
+UINT32 ACPI_SYSTEM_XFACE
+AcpiEvGpeXruptHandler (
+    void                    *Context)
+{
+    ACPI_GPE_XRUPT_INFO     *GpeXruptList = Context;
+    UINT32                  InterruptHandled = ACPI_INTERRUPT_NOT_HANDLED;
+
+
+    ACPI_FUNCTION_TRACE (EvGpeXruptHandler);
+
+
+    /*
+     * We are guaranteed by the ACPICA initialization/shutdown code that
+     * if this interrupt handler is installed, ACPI is enabled.
+     */
+
+    /* GPEs: Check for and dispatch any GPEs that have occurred */
+
+    InterruptHandled |= AcpiEvGpeDetect (GpeXruptList);
+    return_UINT32 (InterruptHandled);
+}
+
+
+/******************************************************************************
+ *
+ * FUNCTION:    AcpiEvInstallSciHandler
+ *
+ * PARAMETERS:  none
+ *
+ * RETURN:      Status
+ *
+ * DESCRIPTION: Installs SCI handler.
+ *
+ ******************************************************************************/
+
+UINT32
+AcpiEvInstallSciHandler (
+    void)
+{
+    UINT32                  Status = AE_OK;
+
+
+    ACPI_FUNCTION_TRACE (EvInstallSciHandler);
+
+
+    Status = AcpiOsInstallInterruptHandler ((UINT32) AcpiGbl_FADT.SciInterrupt,
+        AcpiEvSciXruptHandler, AcpiGbl_GpeXruptListHead);
+    return_ACPI_STATUS (Status);
+}
+
+
+/******************************************************************************
+ *
+ * FUNCTION:    AcpiEvRemoveAllSciHandlers
+ *
+ * PARAMETERS:  none
+ *
+ * RETURN:      AE_OK if handler uninstalled, AE_ERROR if handler was not
+ *              installed to begin with
+ *
+ * DESCRIPTION: Remove the SCI interrupt handler. No further SCIs will be
+ *              taken. Remove all host-installed SCI handlers.
+ *
+ * Note:  It doesn't seem important to disable all events or set the event
+ *        enable registers to their original values. The OS should disable
+ *        the SCI interrupt level when the handler is removed, so no more
+ *        events will come in.
+ *
+ ******************************************************************************/
+
+ACPI_STATUS
+AcpiEvRemoveAllSciHandlers (
+    void)
+{
+    ACPI_SCI_HANDLER_INFO   *SciHandler;
+    ACPI_CPU_FLAGS          Flags;
+    ACPI_STATUS             Status;
+
+
+    ACPI_FUNCTION_TRACE (EvRemoveAllSciHandlers);
+
+
+    /* Just let the OS remove the handler and disable the level */
+
+    Status = AcpiOsRemoveInterruptHandler ((UINT32) AcpiGbl_FADT.SciInterrupt,
+        AcpiEvSciXruptHandler);
+
+    if (!AcpiGbl_SciHandlerList)
+    {
+        return (Status);
+    }
+
+    Flags = AcpiOsAcquireLock (AcpiGbl_GpeLock);
+
+    /* Free all host-installed SCI handlers */
+
+    while (AcpiGbl_SciHandlerList)
+    {
+        SciHandler = AcpiGbl_SciHandlerList;
+        AcpiGbl_SciHandlerList = SciHandler->Next;
+        ACPI_FREE (SciHandler);
+    }
+
+    AcpiOsReleaseLock (AcpiGbl_GpeLock, Flags);
+    return_ACPI_STATUS (Status);
+}
+
+#endif /* !ACPI_REDUCED_HARDWARE */

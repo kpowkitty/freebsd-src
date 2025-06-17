@@ -156,7 +156,6 @@
 #define _COMPONENT          ACPI_TABLES
         ACPI_MODULE_NAME    ("tbinstal")
 
-
 /*******************************************************************************
  *
  * FUNCTION:    AcpiTbInstallTableWithOverride
@@ -218,7 +217,6 @@ AcpiTbInstallTableWithOverride (
         AcpiUtSetIntegerWidth (NewTableDesc->Pointer->Revision);
     }
 }
-
 
 /*******************************************************************************
  *
@@ -335,7 +333,6 @@ ReleaseAndExit:
     AcpiTbReleaseTempTable (&NewTableDesc);
     return_ACPI_STATUS (Status);
 }
-
 
 /*******************************************************************************
  *

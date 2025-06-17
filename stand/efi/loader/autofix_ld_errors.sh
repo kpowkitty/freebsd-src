@@ -26,7 +26,7 @@ while :; do
 	
 	# Search the source tree for the FUNCTION comment line
 	match=`grep -Erl --include="*.c" \
-		"\* FUNCTION:[[:space:]]*$missing_func" "$SRC_TREE" \
+		"\* FUNCTION:[[:space:]]*$missing_func([[:space:]]|\$)" "$SRC_TREE" \
 		| head -n1`
 	
 	if [ -z "$match" ]; then
@@ -40,7 +40,6 @@ while :; do
 	
 	if grep -qF "$missing_func" "$CALL_GRAPH"; then
 		echo "Found: $missing_func"
-		continue
 	else
 		echo "$missing_func not in graph."
 		echo "It is found in $src_file."
@@ -94,6 +93,13 @@ while :; do
 
 	# Copy the file to matching location in DEST_DIR
 	stand_file="$DEST_DIR/$rel_path"
+	
+	if [ -f "$stand_file" ]; then
+		echo "File already copied over. Error."
+		echo "File: $stand_file"
+		exit 1
+	fi
+
 	sudo mkdir -p "$DEST_DIR/$gpp"
 	sudo cp "$src_file" "$stand_file"
 	
