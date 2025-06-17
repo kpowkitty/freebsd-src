@@ -48,6 +48,8 @@ SRCS+=	libefi.c \
 	tbxface.c \
 	tbxfroot.c \
 	tbfind.c \
+	utglobal.c \
+	utexcep.c \
 	utaddress.c \
 	utascii.c \
 	utcache.c \
@@ -60,7 +62,8 @@ SRCS+=	libefi.c \
 	utobject.c \
 	utosi.c \
 	utstring.c \
-	utxfinit.c
+	utxfinit.c \
+	osunixxf.c
 
 CFLAGS+=	-I${.CURDIR}/../loader
 .if ${MK_LOADER_ZFS} != "no"
@@ -94,6 +97,7 @@ CWARNFLAGS.main.c+=	-Wno-format
 .PATH: ${.CURDIR}/../libefi
 .PATH: ${.CURDIR}/../acpica
 .PATH: ${.CURDIR}/../acpica/Osd
+.PATH: ${.CURDIR}/../contrib/dev/acpica/os_specific/service_layers
 .PATH: ${.CURDIR}/../contrib/dev/acpica/components/tables
 .PATH: ${.CURDIR}/../contrib/dev/acpica/components/namespace
 .PATH: ${.CURDIR}/../contrib/dev/acpica/components/utilities
