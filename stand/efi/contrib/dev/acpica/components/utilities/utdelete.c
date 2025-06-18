@@ -255,19 +255,6 @@ AcpiUtDeleteInternalObj (
         ObjPointer = Object->Package.Elements;
         break;
 
-    /*
-     * These objects have a possible list of notify handlers.
-     * Device object also may have a GPE block.
-     */
-    case ACPI_TYPE_DEVICE:
-
-        if (Object->Device.GpeBlock)
-        {
-            (void) AcpiEvDeleteGpeBlock (Object->Device.GpeBlock);
-        }
-
-        ACPI_FALLTHROUGH;
-
     case ACPI_TYPE_PROCESSOR:
     case ACPI_TYPE_THERMAL:
 
@@ -282,52 +269,10 @@ AcpiUtDeleteInternalObj (
         }
         break;
 
-    case ACPI_TYPE_MUTEX:
-
-        ACPI_DEBUG_PRINT ((ACPI_DB_ALLOCATIONS,
-            "***** Mutex %p, OS Mutex %p\n",
-            Object, Object->Mutex.OsMutex));
-
-        if (Object == AcpiGbl_GlobalLockMutex)
-        {
-            /* Global Lock has extra semaphore */
-
-            (void) AcpiOsDeleteSemaphore (AcpiGbl_GlobalLockSemaphore);
-            AcpiGbl_GlobalLockSemaphore = ACPI_SEMAPHORE_NULL;
-
-            AcpiOsDeleteMutex (Object->Mutex.OsMutex);
-            AcpiGbl_GlobalLockMutex = NULL;
-        }
-        else
-        {
-            AcpiExUnlinkMutex (Object);
-            AcpiOsDeleteMutex (Object->Mutex.OsMutex);
-        }
-        break;
-
-    case ACPI_TYPE_EVENT:
-
-        ACPI_DEBUG_PRINT ((ACPI_DB_ALLOCATIONS,
-            "***** Event %p, OS Semaphore %p\n",
-            Object, Object->Event.OsSemaphore));
-
-        (void) AcpiOsDeleteSemaphore (Object->Event.OsSemaphore);
-        Object->Event.OsSemaphore = ACPI_SEMAPHORE_NULL;
-        break;
-
     case ACPI_TYPE_METHOD:
 
         ACPI_DEBUG_PRINT ((ACPI_DB_ALLOCATIONS,
             "***** Method %p\n", Object));
-
-        /* Delete the method mutex if it exists */
-
-        if (Object->Method.Mutex)
-        {
-            AcpiOsDeleteMutex (Object->Method.Mutex->Mutex.OsMutex);
-            AcpiUtDeleteObjectDesc (Object->Method.Mutex);
-            Object->Method.Mutex = NULL;
-        }
 
         if (Object->Method.Node)
         {
@@ -532,7 +477,6 @@ AcpiUtUpdateRefCount (
 {
     UINT16                  OriginalCount;
     UINT16                  NewCount = 0;
-    ACPI_CPU_FLAGS          LockFlags;
     char                    *Message;
 
 
@@ -548,7 +492,6 @@ AcpiUtUpdateRefCount (
      * Always get the reference count lock. Note: Interpreter and/or
      * Namespace is not always locked when this function is called.
      */
-    LockFlags = AcpiOsAcquireLock (AcpiGbl_ReferenceCountLock);
     OriginalCount = Object->Common.ReferenceCount;
 
     /* Perform the reference count action (increment, decrement) */
@@ -559,7 +502,6 @@ AcpiUtUpdateRefCount (
 
         NewCount = OriginalCount + 1;
         Object->Common.ReferenceCount = NewCount;
-        AcpiOsReleaseLock (AcpiGbl_ReferenceCountLock, LockFlags);
 
         /* The current reference count should never be zero here */
 
@@ -587,8 +529,6 @@ AcpiUtUpdateRefCount (
             Object->Common.ReferenceCount = NewCount;
         }
 
-        AcpiOsReleaseLock (AcpiGbl_ReferenceCountLock, LockFlags);
-
         if (!OriginalCount)
         {
             ACPI_WARNING ((AE_INFO,
@@ -612,7 +552,6 @@ AcpiUtUpdateRefCount (
 
     default:
 
-        AcpiOsReleaseLock (AcpiGbl_ReferenceCountLock, LockFlags);
         ACPI_ERROR ((AE_INFO, "Unknown Reference Count action (0x%X)",
             Action));
         return;

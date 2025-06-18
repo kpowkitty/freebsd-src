@@ -432,8 +432,10 @@ AcpiUtSubsystemShutdown (
 #ifndef ACPI_ASL_COMPILER
 
     /* Close the AcpiEvent Handling */
-
+    /* Do we need to define ACPI_ASL_COMPILER?
+     * XXX
     AcpiEvTerminate ();
+    */
 
     /* Delete any dynamic _OSI interfaces */
 
