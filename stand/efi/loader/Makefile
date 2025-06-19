@@ -116,9 +116,6 @@ CWARNFLAGS.main.c+=	-Wno-format
 .PATH: ${.CURDIR}/../contrib/dev/acpica/components/namespace
 .PATH: ${.CURDIR}/../contrib/dev/acpica/components/utilities
 .PATH: ${.CURDIR}/../contrib/dev/acpica/components/dispatcher
-#.PATH: ${.CURDIR}/../contrib/dev/acpica/components/events
-#.PATH: ${.CURDIR}/../contrib/dev/acpica/components/executer
-#.PATH: ${.CURDIR}/../contrib/dev/acpica/components/hardware
 .include "${.CURDIR}/../loader/arch/${__arch}/Makefile.inc"
 
 CFLAGS+=	-I${.CURDIR}

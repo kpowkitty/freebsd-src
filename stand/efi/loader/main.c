@@ -120,11 +120,6 @@ UINT16 boot_current;
  */
 EFI_LOADED_IMAGE *boot_img;
 
-/*
- * RSDP base table.
- */
-ACPI_TABLE_RSDP *rsdp;
-
 static bool
 has_keyboard(void)
 {
@@ -1130,39 +1125,6 @@ ptov(uintptr_t x)
 }
 
 static void
-acpi_detect(void)
-{
-	char buf[24];
-	int revision;
-
-	feature_enable(FEATURE_EARLY_ACPI);
-	if ((rsdp = efi_get_table(&acpi20)) == NULL)
-		if ((rsdp = efi_get_table(&acpi)) == NULL)
-			return;
-
-	sprintf(buf, "0x%016"PRIxPTR, (uintptr_t)rsdp);
-	setenv("acpi.rsdp", buf, 1);
-	revision = rsdp->Revision;
-	if (revision == 0)
-		revision = 1;
-	sprintf(buf, "%d", revision);
-	setenv("acpi.revision", buf, 1);
-	strncpy(buf, rsdp->OemId, sizeof(rsdp->OemId));
-	buf[sizeof(rsdp->OemId)] = '\0';
-	setenv("acpi.oem", buf, 1);
-	sprintf(buf, "0x%016x", rsdp->RsdtPhysicalAddress);
-	setenv("acpi.rsdt", buf, 1);
-	if (revision >= 2) {
-		/* XXX extended checksum? */
-		sprintf(buf, "0x%016llx",
-		    (unsigned long long)rsdp->XsdtPhysicalAddress);
-		setenv("acpi.xsdt", buf, 1);
-		sprintf(buf, "%d", rsdp->Length);
-		setenv("acpi.xsdt_length", buf, 1);
-	}
-}
-
-static void
 efi_smbios_detect(void)
 {
 	VOID *smbios_v2_ptr = NULL;
@@ -1223,11 +1185,6 @@ main(int argc, CHAR16 *argv[])
 	/* Report the RSDP early. */
 	acpi_detect();
 
-	/* Initialize ACPI Subsystem and Tables. */
-	if ((ret = acpi_identify()) != 0) {
-		printf("Failed to acpi_identify().");
-	}
-
 	/*
 	 * Chicken-and-egg problem; we want to have console output early, but
 	 * some console attributes may depend on reading from eg. the boot
@@ -1270,6 +1227,11 @@ main(int argc, CHAR16 *argv[])
 
 	devinit();
 
+	/* Initialize ACPI Subsystem and Tables. */
+	if ((ret = acpi_identify()) != 0) {
+		printf("Failed to acpi_identify().");
+	}
+	
 	/*
 	 * Detect console settings two different ways: one via the command
 	 * args (eg -h) or via the UEFI ConOut variable.

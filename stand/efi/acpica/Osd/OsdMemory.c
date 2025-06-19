@@ -154,11 +154,5 @@ ACPI_PHYSICAL_ADDRESS
 AcpiOsGetRootPointer (
     void)
 {
-	void *rsdp;
-
-	if ((rsdp = efi_get_table(&acpi20)) == NULL)
-		if ((rsdp = efi_get_table(&acpi)) == NULL) 
-			return 0; // Failed to get ACPI table
-	
-	return (ACPI_PHYSICAL_ADDRESS)(uintptr_t)rsdp;
+	return (rsdp->RsdtPhysicalAddress);
 }

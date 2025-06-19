@@ -31,7 +31,9 @@
 
 extern EFI_GUID acpi;
 extern EFI_GUID acpi20;
+extern ACPI_TABLE_RSDP *rsdp;
 
+void acpi_detect(void);
 ACPI_STATUS acpi_Startup(void);
 int acpi_identify(void);
 
