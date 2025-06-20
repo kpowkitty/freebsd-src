@@ -32,7 +32,7 @@ SRCS=	autoload.c \
 
 # ACPICA Loader Initialization
 # XXX Try to trim amount src'd if possible...
-CFLAGS+=	-UACPI_USE_SYSTEM_CLIBRARY \
+CFLAGS+=	-DACPI_USE_SYSTEM_CLIBRARY \
 		-DACPI_SINGLE_THREADED \
 		-DACPI_USE_NATIVE_RSDP_POINTER \
 		-DACPI_USE_NATIVE_MEMORY_MAPPING \
@@ -43,7 +43,6 @@ SRCS+=	libefi.c \
 	utstate.c \
 	utglobal.c \
 	utinit.c \
-	utclib.c \
 	init_acpi.c \
 	nswalk.c \
 	nssearch.c \
@@ -113,16 +112,18 @@ CWARNFLAGS.main.c+=	-Wno-format
 .PATH: ${.CURDIR}/../acpica/Osd
 .PATH: ${.CURDIR}/../contrib/dev/acpica/os_specific/service_layers
 .PATH: ${.CURDIR}/../contrib/dev/acpica/components/tables
-.PATH: ${.CURDIR}/../contrib/dev/acpica/components/namespace
 .PATH: ${.CURDIR}/../contrib/dev/acpica/components/utilities
-.PATH: ${.CURDIR}/../contrib/dev/acpica/components/dispatcher
+.PATH: ${SYSDIR}/contrib/dev/acpica/components/tables
+.PATH: ${SYSDIR}/contrib/dev/acpica/components/namespace
+.PATH: ${SYSDIR}/contrib/dev/acpica/components/utilities
+.PATH: ${SYSDIR}/contrib/dev/acpica/components/dispatcher
 .include "${.CURDIR}/../loader/arch/${__arch}/Makefile.inc"
 
 CFLAGS+=	-I${.CURDIR}
 CFLAGS+=	-I${.CURDIR}/arch/${__arch}
 CFLAGS+=	-I${EFISRC}/include
 CFLAGS+=	-I${EFISRC}/include/${__arch}
-CFLAGS+=	-I${EFISRC}/contrib/dev/acpica/include
+CFLAGS+=	-I${SYSDIR}/contrib/dev/acpica/include
 CFLAGS+=	-I${EFISRC}/acpica/include
 CFLAGS+=	-I${BOOTSRC}/i386/libi386
 CFLAGS+=	-DEFI
