@@ -154,5 +154,5 @@ ACPI_PHYSICAL_ADDRESS
 AcpiOsGetRootPointer (
     void)
 {
-	return (rsdp->RsdtPhysicalAddress);
+	return (rsdp->XsdtPhysicalAddress);
 }

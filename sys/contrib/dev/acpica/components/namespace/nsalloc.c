@@ -654,7 +654,16 @@ AcpiNsDeleteNamespaceByOwner (
 
         if (ChildNode)
         {
-            if (ChildNode->OwnerId == OwnerId)
+
+#ifdef _STANDALONE
+	    printf("ChildNode->Name.Ascii: ");
+	    for (int i = 0; i < 4; ++i) {
+	    	printf("%c", ChildNode->Name.Ascii[i]);
+	    }
+	    printf(".\n");
+#endif
+
+	    if (ChildNode->OwnerId == OwnerId)
             {
                 /* Found a matching child node - detach any attached object */
 

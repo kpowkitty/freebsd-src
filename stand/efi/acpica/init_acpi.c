@@ -34,10 +34,15 @@
 
 #include <stand.h>
 
+
 #include <acpi.h>
 #include <accommon.h>
+#include <acoutput.h>
 
 #include <init_acpi.h>
+
+#define _COMPONENT ACPI_LOADER
+ACPI_MODULE_NAME("init_acpi");
 
 /* Holds the description of the acpi0 device. */
 static char acpi_desc[ACPI_OEM_ID_SIZE + ACPI_OEM_TABLE_ID_SIZE + 2];

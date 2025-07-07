@@ -29,6 +29,8 @@
 #include <efi.h>
 #include <efilib.h>
 
+#define ACPI_LOADER 0x00020000
+
 extern EFI_GUID acpi;
 extern EFI_GUID acpi20;
 extern ACPI_TABLE_RSDP *rsdp;

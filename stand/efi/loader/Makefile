@@ -36,29 +36,13 @@ CFLAGS+=	-DACPI_USE_SYSTEM_CLIBRARY \
 		-DACPI_SINGLE_THREADED \
 		-DACPI_USE_NATIVE_RSDP_POINTER \
 		-DACPI_USE_NATIVE_MEMORY_MAPPING \
-		-DACPI_EXCLUDE
+		-DACPI_EXCLUDE \
+		-DACPI_DEBUG_OUTPUT
 
 SRCS+=	libefi.c \
 	OsdMemory.c \
-	utstate.c \
-	utglobal.c \
-	utinit.c \
-	init_acpi.c \
-	nswalk.c \
-	nssearch.c \
-	nsnames.c \
-	nsutils.c \
-	nsaccess.c \
-	nsalloc.c \
-	nsobject.c \
-	tbdata.c \
-	tbfadt.c \
-	tbinstal.c \
-	tbprint.c \
-	tbutils.c \
-	tbxface.c \
-	tbxfroot.c \
-	tbfind.c \
+	osunixxf.c \
+	utbuffer.c \
 	utmisc.c \
 	utalloc.c \
 	utxferror.c \
@@ -75,8 +59,28 @@ SRCS+=	libefi.c \
 	utosi.c \
 	utstring.c \
 	utxfinit.c \
+	utstate.c \
+	utglobal.c \
+	utinit.c \
+	tbdata.c \
+	tbfadt.c \
+	tbinstal.c \
+	tbprint.c \
+	tbutils.c \
+	tbxface.c \
+	tbxfroot.c \
+	tbfind.c \
+	nsdump.c \
+	nswalk.c \
+	nssearch.c \
+	nsnames.c \
+	nsutils.c \
+	nsaccess.c \
+	nsalloc.c \
+	nsobject.c \
 	dswscope.c \
-	osunixxf.c
+	extrace.c \
+	init_acpi.c
 
 CFLAGS+=	-I${.CURDIR}/../loader
 .if ${MK_LOADER_ZFS} != "no"
@@ -117,6 +121,7 @@ CWARNFLAGS.main.c+=	-Wno-format
 .PATH: ${SYSDIR}/contrib/dev/acpica/components/namespace
 .PATH: ${SYSDIR}/contrib/dev/acpica/components/utilities
 .PATH: ${SYSDIR}/contrib/dev/acpica/components/dispatcher
+.PATH: ${SYSDIR}/contrib/dev/acpica/components/executer
 .include "${.CURDIR}/../loader/arch/${__arch}/Makefile.inc"
 
 CFLAGS+=	-I${.CURDIR}

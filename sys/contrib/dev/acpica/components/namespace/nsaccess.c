@@ -238,6 +238,10 @@ AcpiNsRootInitialize (
     {
         Status = AE_OK;
 
+#ifdef _STANDALONE
+	printf("InitVal->Name: %s.\n", InitVal->Name);
+#endif
+
         /* _OSI is optional for now, will be permanent later */
 
         if (!strcmp (InitVal->Name, "_OSI") && !AcpiGbl_CreateOsiMethod)
@@ -384,7 +388,9 @@ AcpiNsRootInitialize (
             }
 
             /* Store pointer to value descriptor in the Node */
-
+#ifdef _STANDALONE
+	    printf("AcpiNsAttachObject for InitVal->Name: %s.\n", InitVal->Name);
+#endif
             Status = AcpiNsAttachObject (NewNode, ObjDesc,
                 ObjDesc->Common.Type);
 
@@ -404,6 +410,10 @@ UnlockAndExit:
         Status = AcpiNsGetNode (NULL, "\\_GPE", ACPI_NS_NO_UPSEARCH,
             &AcpiGbl_FadtGpeDevice);
     }
+
+#ifdef _STANDALONE
+    printf("Successful AcpiNsRootInitialize.\n");
+#endif
 
     return_ACPI_STATUS (Status);
 }
