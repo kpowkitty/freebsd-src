@@ -155,21 +155,9 @@ ACPI_PHYSICAL_ADDRESS
 AcpiOsGetRootPointer (
     void)
 {
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
 	if (!rsdp) {
 		return (0);
 	}
 
 	return (ACPI_PHYSICAL_ADDRESS)(uintptr_t)(rsdp);
-=======
-	return (rsdp->XsdtPhysicalAddress);
->>>>>>> 46d29d6804 (ACPI_DEBUG_OUTPUT initialized)
-=======
-	return (rsdp->XsdtPhysicalAddress);
->>>>>>> 46d29d6804 (ACPI_DEBUG_OUTPUT initialized)
-=======
-	return (rsdp->XsdtPhysicalAddress);
->>>>>>> 46d29d6804 (ACPI_DEBUG_OUTPUT initialized)
 }

@@ -36,16 +36,7 @@ CFLAGS+=	-DACPI_USE_SYSTEM_CLIBRARY \
 		-DACPI_SINGLE_THREADED \
 		-DACPI_USE_NATIVE_RSDP_POINTER \
 		-DACPI_USE_NATIVE_MEMORY_MAPPING \
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
 		-DACPI_REDUCED_HARDWARE \
-=======
->>>>>>> 46d29d6804 (ACPI_DEBUG_OUTPUT initialized)
-=======
->>>>>>> 46d29d6804 (ACPI_DEBUG_OUTPUT initialized)
-=======
->>>>>>> 46d29d6804 (ACPI_DEBUG_OUTPUT initialized)
 		-DACPI_EXCLUDE \
 		-DACPI_DEBUG_OUTPUT
 
@@ -90,9 +81,6 @@ SRCS+=	libefi.c \
 	nsobject.c \
 	dswscope.c \
 	extrace.c \
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
 	hwregs.c \
 	hwxface.c \
 	hwvalid.c \
@@ -100,12 +88,6 @@ SRCS+=	libefi.c \
 	evxface.c \
 	evevent.c \
 	evxfevnt.c \
-=======
->>>>>>> 46d29d6804 (ACPI_DEBUG_OUTPUT initialized)
-=======
->>>>>>> 46d29d6804 (ACPI_DEBUG_OUTPUT initialized)
-=======
->>>>>>> 46d29d6804 (ACPI_DEBUG_OUTPUT initialized)
 	init_acpi.c
 
 CFLAGS+=	-I${.CURDIR}/../loader
@@ -150,17 +132,8 @@ CWARNFLAGS.main.c+=	-Wno-format
 .PATH: ${SYSDIR}/contrib/dev/acpica/components/utilities
 .PATH: ${SYSDIR}/contrib/dev/acpica/components/dispatcher
 .PATH: ${SYSDIR}/contrib/dev/acpica/components/executer
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
 .PATH: ${SYSDIR}/contrib/dev/acpica/components/hardware
 .PATH: ${SYSDIR}/contrib/dev/acpica/components/events
-=======
->>>>>>> 46d29d6804 (ACPI_DEBUG_OUTPUT initialized)
-=======
->>>>>>> 46d29d6804 (ACPI_DEBUG_OUTPUT initialized)
-=======
->>>>>>> 46d29d6804 (ACPI_DEBUG_OUTPUT initialized)
 .include "${.CURDIR}/../loader/arch/${__arch}/Makefile.inc"
 
 CFLAGS+=	-I${.CURDIR}
