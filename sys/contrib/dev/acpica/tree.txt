@@ -1,0 +1,69 @@
+File: [./components/tables/tbxface.c], Function: [AcpiGetTableByIndex].
+File: [./components/hardware/hwxface.c], Function: [AcpiReadBitRegister].
+File: [./components/events/evevent.c], Function: [AcpiEvFixedEventInitialize].
+File: [./components/hardware/hwxface.c], Function: [AcpiWriteBitRegister].
+File: [./components/events/evgpeinit.c], Function: [AcpiEvGpeInitialize].
+  File: [./components/events/evgpeinit.c], Function: [AcpiEvUpdateGpes].
+  File: [./components/utilities/utmutex.c], Function: [AcpiUtAcquireMutex].
+    File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsGetThreadId].
+    File: [./components/utilities/utdecode.c], Function: [AcpiUtGetMutexName].
+  File: [./components/namespace/nswalk.c], Function: [AcpiNsWalkNamespace].
+    File: [./components/namespace/nswalk.c], Function: [AcpiNsGetNextNode].
+      File: [./components/namespace/nswalk.c], Function: [AcpiNsGetNextNode].
+    File: [./components/utilities/utmutex.c], Function: [AcpiUtReleaseMutex].
+      File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsGetThreadId].
+      File: [./components/utilities/utdecode.c], Function: [AcpiUtGetMutexName].
+    File: [./components/utilities/utmutex.c], Function: [AcpiUtAcquireMutex].
+  File: [./components/events/evgpeinit.c], Function: [AcpiEvMatchGpeMethod].
+  File: [./components/utilities/uthex.c], Function: [AcpiUtAsciiToHexByte].
+    File: [./components/utilities/uthex.c], Function: [AcpiUtAsciiCharToHex].
+  File: [./components/events/evgpe.c], Function: [AcpiEvLowGetGpeInfo].
+  File: [./components/hardware/hwgpe.c], Function: [AcpiHwLowSetGpe].
+    File: [./components/hardware/hwregs.c
+./components/hardware/hwvalid.c], Function: [AcpiHwRead].
+    File: [./components/hardware/hwgpe.c], Function: [AcpiHwGetGpeRegisterBit].
+    File: [./components/hardware/hwregs.c
+./components/hardware/hwvalid.c], Function: [AcpiHwWrite].
+  File: [./components/utilities/utmutex.c], Function: [AcpiUtReleaseMutex].
+File: [./components/events/evsci.c], Function: [AcpiEvInstallSciHandler].
+  File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsInstallInterruptHandler].
+  File: [./components/events/evsci.c], Function: [AcpiEvSciXruptHandler].
+  File: [./components/events/evevent.c], Function: [AcpiEvFixedEventDetect].
+    File: [./components/hardware/hwregs.c], Function: [AcpiHwRegisterRead].
+      File: [./components/hardware/hwregs.c], Function: [AcpiHwReadMultiple].
+      File: [./components/hardware/hwregs.c], Function: [AcpiHwValidateRegister].
+      File: [./components/hardware/hwregs.c], Function: [AcpiHwGetAccessBitWidth].
+      File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsReadMemory].
+      File: [./components/hardware/hwvalid.c], Function: [AcpiHwReadPort].
+        File: [./components/hardware/hwvalid.c], Function: [AcpiHwValidateIoRequest].
+        File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsReadPort].
+      File: [./components/utilities/utdecode.c], Function: [AcpiUtGetRegionName].
+      File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsReadMemory].
+      File: [./components/hardware/hwvalid.c], Function: [AcpiHwReadPort].
+      File: [./components/utilities/utdecode.c], Function: [AcpiUtGetRegionName].
+      File: [./components/hardware/hwvalid.c], Function: [AcpiHwReadPort].
+  File: [./components/events/evgpe.c], Function: [AcpiEvGpeDetect].
+    File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsAcquireLock].
+      File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsWaitSemaphore].
+    File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsReleaseLock].
+      File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsSignalSemaphore].
+    File: [./components/events/evgpe.c], Function: [AcpiEvDetectGpe].
+    File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsAcquireLock].
+    File: [./components/events/evgpe.c], Function: [AcpiEvGetGpeEventInfo].
+    File: [./components/namespace/nsobject.c], Function: [AcpiNsGetAttachedObject].
+    File: [./components/hardware/hwgpe.c], Function: [AcpiHwGetGpeRegisterBit].
+    File: [./components/hardware/hwregs.c
+./components/hardware/hwvalid.c], Function: [AcpiHwRead].
+  File: [./components/events/evsci.c], Function: [AcpiEvSciDispatch].
+  File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsAcquireLock].
+  File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsReleaseLock].
+File: [./components/events/evglock.c], Function: [AcpiEvInitGlobalLockHandler].
+  File: [./components/events/evxface.c], Function: [AcpiInstallFixedEventHandler].
+  File: [./components/events/evglock.c], Function: [AcpiEvGlobalLockHandler].
+  File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsAcquireLock].
+  File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsSignalSemaphore].
+  File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsReleaseLock].
+  File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsCreateLock].
+    File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsCreateSemaphore].
+    File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsAllocate].
+    File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsFree].
