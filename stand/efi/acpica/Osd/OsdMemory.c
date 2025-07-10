@@ -55,19 +55,20 @@ AcpiOsFree(void *Memory)
 void *
 AcpiOsMapMemory(ACPI_PHYSICAL_ADDRESS PhysicalAddress, ACPI_SIZE Length)
 {
-    /* Originally, this mapped physical address space to virtual address
+
+	/* Originally, this mapped physical address space to virtual address
 	 * space. Instead of going through and removing all calls to this,
-	 * we opt to change in place. To have it retain its original 
+	 * we opt to change in place. To have it retain its original
 	 * functionality, we need to have it return the physical address, as we 
 	 * simply operate in physical address space. */
 
-	return (void *)PhysicalAddress;
+	return (void *)(PhysicalAddress);
 }
 
 void
 AcpiOsUnmapMemory(void *LogicalAddress, ACPI_SIZE Length)
 {
-    /* No-op as we never mapped any memory. */
+	/* No-op as we never mapped any memory. */
 }
 
 /* We may or may not need this... Commenting out for now. 
@@ -154,6 +155,9 @@ ACPI_PHYSICAL_ADDRESS
 AcpiOsGetRootPointer (
     void)
 {
-	printf("Xsdt: %d.\n", rsdp->XsdtPhysicalAddress);
-	return (rsdp->XsdtPhysicalAddress);
+	if (!rsdp) {
+		return (0);
+	}
+
+	return (ACPI_PHYSICAL_ADDRESS)(uintptr_t)(rsdp);
 }

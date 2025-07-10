@@ -254,9 +254,15 @@ AcpiTbPrintTableHeader (
 {
     ACPI_TABLE_HEADER       LocalHeader;
 
+#ifdef _STANDALONE
+    	printf("Inside AcpiTbPrintTableHeader.\n");
+#endif
 
     if (ACPI_COMPARE_NAMESEG (Header->Signature, ACPI_SIG_FACS))
     {
+#ifdef _STANDALONE
+    	printf("FACS statement.\n");
+#endif
         /* FACS only has signature and length fields */
 
         ACPI_INFO (("%-4.4s 0x%8.8X%8.8X %06X",
@@ -266,6 +272,9 @@ AcpiTbPrintTableHeader (
     else if (ACPI_VALIDATE_RSDP_SIG (ACPI_CAST_PTR (ACPI_TABLE_RSDP,
         Header)->Signature))
     {
+#ifdef _STANDALONE
+    	printf("RSDP_SIG statement.\n");
+#endif
         /* RSDP has no common fields */
 
         memcpy (LocalHeader.OemId, ACPI_CAST_PTR (ACPI_TABLE_RSDP,
@@ -281,6 +290,9 @@ AcpiTbPrintTableHeader (
     }
     else
     {
+#ifdef _STANDALONE
+    	printf("Standard ACPI statement.\n");
+#endif
         /* Standard ACPI table with full common header */
 
         AcpiTbCleanupTableHeader (&LocalHeader, Header);
