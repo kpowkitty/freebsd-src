@@ -151,12 +151,12 @@
 
 #define EXPORT_ACPI_INTERFACES
 
-#include <acpi.h>
-#include <accommon.h>
-#include <acevents.h>
-#include <acnamesp.h>
-#include <acdebug.h>
-#include <actables.h>
+#include <contrib/dev/acpica/include/acpi.h>
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acevents.h>
+#include <contrib/dev/acpica/include/acnamesp.h>
+#include <contrib/dev/acpica/include/acdebug.h>
+#include <contrib/dev/acpica/include/actables.h>
 
 #define _COMPONENT          ACPI_UTILITIES
         ACPI_MODULE_NAME    ("utxfinit")
@@ -245,7 +245,7 @@ AcpiInitializeSubsystem (
 
 ACPI_EXPORT_SYMBOL_INIT (AcpiInitializeSubsystem)
 
-#ifndef ACPI_EXCLUDE
+
 /*******************************************************************************
  *
  * FUNCTION:    AcpiEnableSubsystem
@@ -356,75 +356,3 @@ AcpiEnableSubsystem (
 }
 
 ACPI_EXPORT_SYMBOL_INIT (AcpiEnableSubsystem)
-
-/*******************************************************************************
- *
- * FUNCTION:    AcpiInitializeObjects
- *
- * PARAMETERS:  Flags               - Init/enable Options
- *
- * RETURN:      Status
- *
- * DESCRIPTION: Completes namespace initialization by initializing device
- *              objects and executing AML code for Regions, buffers, etc.
- *
- ******************************************************************************/
-
-ACPI_STATUS ACPI_INIT_FUNCTION
-AcpiInitializeObjects (
-    UINT32                  Flags)
-{
-    ACPI_STATUS             Status = AE_OK;
-
-
-    ACPI_FUNCTION_TRACE (AcpiInitializeObjects);
-
-
-#ifdef ACPI_OBSOLETE_BEHAVIOR
-    /*
-     * 05/2019: Removed, initialization now happens at both object
-     * creation and table load time
-     */
-
-    /*
-     * Initialize the objects that remain uninitialized. This
-     * runs the executable AML that may be part of the
-     * declaration of these objects: OperationRegions, BufferFields,
-     * BankFields, Buffers, and Packages.
-     */
-    if (!(Flags & ACPI_NO_OBJECT_INIT))
-    {
-        Status = AcpiNsInitializeObjects ();
-        if (ACPI_FAILURE (Status))
-        {
-            return_ACPI_STATUS (Status);
-        }
-    }
-#endif
-
-    /*
-     * Initialize all device/region objects in the namespace. This runs
-     * the device _STA and _INI methods and region _REG methods.
-     */
-    if (!(Flags & (ACPI_NO_DEVICE_INIT | ACPI_NO_ADDRESS_SPACE_INIT)))
-    {
-        Status = AcpiNsInitializeDevices (Flags);
-        if (ACPI_FAILURE (Status))
-        {
-            return_ACPI_STATUS (Status);
-        }
-    }
-
-    /*
-     * Empty the caches (delete the cached objects) on the assumption that
-     * the table load filled them up more than they will be at runtime --
-     * thus wasting non-paged memory.
-     */
-    Status = AcpiPurgeCachedObjects ();
-
-    AcpiGbl_StartupFlags |= ACPI_INITIALIZED_OK;
-    return_ACPI_STATUS (Status);
-}
-
-ACPI_EXPORT_SYMBOL_INIT (AcpiInitializeObjects)
-#endif /* ACPI_EXCLUDE */

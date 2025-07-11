@@ -7,7 +7,7 @@ DEST_DIR="../contrib/dev/acpica"
 MAKEFILE_PATH="Makefile"
 CALL_GRAPH="tree.txt"
 
-echo "Starting singlefix ld errors..."
+echo "Starting singlefix ld error..."
 
 usage() {
 	echo "Usage: $0 <grandparent/parent_of_file> <file_to_bring_over>"
@@ -52,7 +52,7 @@ fi
 
 if grep -q "[[:space:]]$filename[[:space:]]*\\\\" "$MAKEFILE_PATH"; then
     echo "$filename already present in Makefile."
-    continue
+    exit 0
 fi
 
 # prefix of file --- easiest way to find where to insert it into Makefile

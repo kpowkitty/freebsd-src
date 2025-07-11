@@ -24,7 +24,7 @@ while :; do
 	echo "Missing function: $missing_func" | tee -a build.log
 
 	
-	# Search the source tree for the FUNCTION comment line
+	# Find the function's filename to later be added to the Makefile
 	match=`grep -Erl --include="*.c" \
 		"\* FUNCTION:[[:space:]]*$missing_func([[:space:]]|\$)" "$SRC_TREE" \
 		| head -n1`
@@ -38,6 +38,9 @@ while :; do
 	# Extract source file path from grep output
 	src_file=`echo "$match" | cut -d: -f1`
 	
+	# Only automatically add the function if it is
+	# present in our call graph. If not, then we 
+	# query the user on how to proceed.
 	if grep -qF "$missing_func" "$CALL_GRAPH"; then
 		echo "Found: $missing_func"
 	else
@@ -78,44 +81,11 @@ while :; do
 
 	echo "$src_file" | tee -a build.log
 	
-	# Extract the relative path
-	rel_path=`echo "$src_file" | sed "s|$SRC_TREE/||"`
-	
-	echo "$rel_path" | tee -a build.log
-	
-	# Extract the filename and parent directory
-	gpp=`echo "$rel_path" | cut -d/ -f1-2` # grandparent 
-					       # and parent dir of filename
-	filename=`echo "$rel_path" | cut -d/ -f3`
+	# Extract the filename, insert it into Makefile
+	filename=$(basename "$src_file")
 
-	echo "gpp: $gpp" | tee -a build.log
-	echo "Filename: $filename" | tee -a build.log
+	echo "File: $filename" | tee -a build.log
 
-	# Copy the file to matching location in DEST_DIR
-	stand_file="$DEST_DIR/$rel_path"
-	
-	if [ -f "$stand_file" ]; then
-		echo "File already copied over. Error."
-		echo "File: $stand_file"
-		exit 1
-	fi
-
-	sudo mkdir -p "$DEST_DIR/$gpp"
-	sudo cp "$src_file" "$stand_file"
-	
-	echo "Copied $src_file to $stand_file" | tee -a build.log
-	
-	echo "Editing $stand_file..." | tee -a build.log
-	
-	# Automatically rewrite #include lines in the copied file
-	# Example: #include <contrib/dev/acpica/include/accommon.h> -> #include <accommon.h>
-
-	sudo sed -Ei '' \
-		's|#include <contrib/dev/acpica/include/([^>]+)>|#include <\1>|g' \
-		"$stand_file"
-	
-	echo "Edited $stand_file." | tee -a build.log
-	
 	if [ ! -f "$MAKEFILE_PATH" ]; then
 	    echo "Makefile not found: $MAKEFILE_PATH"
 	    break
@@ -126,14 +96,13 @@ while :; do
 	    continue
 	fi
 
-	# prefix of file --- easiest way to find where to insert it into Makefile
+	# Prefix of file --- easiest way to find where to insert it into Makefile
 	prefix=`echo "$filename" | cut -c1-2`
 	echo "Prefix: $prefix" | tee -a build.log
 
-	# capture pattern for line number of first occurence of file in 
+	# Capture pattern for line number of first occurence of file in 
 	# Makefile SRCS+= that has the same scope of the file we are inserting
 	pattern='^[[:space:]]*'"${prefix}"'[A-Za-z0-9_]*\.c[[:space:]]*\\$'
-	# echo "Grep pattern: $pattern." | tee -a build.log
 	
 	# extract the line number
 	insertion_line=`grep -nE "$pattern" "$MAKEFILE_PATH" | head -n1 \

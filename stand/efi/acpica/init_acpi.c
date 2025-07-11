@@ -109,6 +109,13 @@ acpi_Startup(void)
         return_VALUE (status);
     }
 
+    uint32_t flags = ACPI_NO_HARDWARE_INIT | ACPI_NO_EVENT_INIT | ACPI_NO_ACPI_ENABLE;
+    if (ACPI_FAILURE(status = AcpiEnableSubsystem(flags))) {
+        printf("ACPI: Enable subsystem failed: %s\n",
+            AcpiFormatException(status));
+        return_VALUE (status);
+    }
+
     return_VALUE (status);
 }
 
