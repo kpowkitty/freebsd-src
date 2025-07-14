@@ -70,6 +70,7 @@
 #include "actbl.h"
 
 #include <init_acpi.h>
+#include <init_conf.h>
 
 #include "loader_efi.h"
 
@@ -1231,6 +1232,8 @@ main(int argc, CHAR16 *argv[])
 	if ((ret = acpi_identify()) != 0) {
 		printf("Failed to acpi_identify().");
 	}
+
+	init_conf();
 	
 	/*
 	 * Detect console settings two different ways: one via the command

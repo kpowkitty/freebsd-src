@@ -43,6 +43,12 @@ CFLAGS+=	-DACPI_USE_SYSTEM_CLIBRARY \
 SRCS+=	libefi.c \
 	OsdMemory.c \
 	osunixxf.c \
+	utglobal.c \
+	utinit.c \
+	utpredef.c \
+	uterror.c \
+	uteval.c \
+	utids.c \
 	utbuffer.c \
 	utmisc.c \
 	utalloc.c \
@@ -61,8 +67,6 @@ SRCS+=	libefi.c \
 	utstring.c \
 	utxfinit.c \
 	utstate.c \
-	utglobal.c \
-	utinit.c \
 	tbdata.c \
 	tbfadt.c \
 	tbinstal.c \
@@ -71,6 +75,8 @@ SRCS+=	libefi.c \
 	tbxface.c \
 	tbxfroot.c \
 	tbfind.c \
+	nseval.c \
+	nsxfname.c \
 	nsdump.c \
 	nswalk.c \
 	nssearch.c \
@@ -80,6 +86,7 @@ SRCS+=	libefi.c \
 	nsalloc.c \
 	nsobject.c \
 	dswscope.c \
+	exutils.c \
 	extrace.c \
 	hwregs.c \
 	hwxface.c \
@@ -88,7 +95,8 @@ SRCS+=	libefi.c \
 	evxface.c \
 	evevent.c \
 	evxfevnt.c \
-	init_acpi.c
+	init_acpi.c \
+	init_conf.c
 
 CFLAGS+=	-I${.CURDIR}/../loader
 .if ${MK_LOADER_ZFS} != "no"
