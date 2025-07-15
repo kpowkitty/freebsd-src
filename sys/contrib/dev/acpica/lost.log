@@ -1,0 +1,6 @@
+Line 54: Function AcpiUtCopyEObjectToIObject not found in any source file.
+Line 54: Function AcpiOsAcquireMutex() not found in any source file.
+Line 54: Function AcpiOsReleaseMutex() not found in any source file.
+Line 54: Function AcpiUtCopyIObjectToEObject not found in any source file.
+Line 54: Function AcpiOsDeleteMutex() not found in any source file.
+Line 54: Function AcpiOsDeleteMutex() not found in any source file.

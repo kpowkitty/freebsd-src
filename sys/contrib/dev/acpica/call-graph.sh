@@ -60,7 +60,7 @@ for fn in $calls; do
       		echo "Skipping $fn" | tee -a skip.log > /dev/null
       		;;
     	*Acpi*)
-      		indent=`printf '%*s' $((level * 2)) ''`
+			indent=`printf '%*s' $((level * 2)) ''`
 
 			# Find the file this function is in
 			file=`grep -rlE --include='*.[ch]' "\* FUNCTION:[[:space:]]+$fn" .`

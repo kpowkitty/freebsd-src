@@ -1,0 +1,31 @@
+File: [./components/tables/tbxface.c], Function: [AcpiAllocateRootTable].
+  File: [./components/tables/tbxface.c], Function: [AcpiAllocateRootTable].
+File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsGetRootPointer].
+File: [./components/tables/tbutils.c], Function: [AcpiTbParseRootTable].
+  File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsMapMemory].
+  File: [./components/tables/tbprint.c], Function: [AcpiTbPrintTableHeader].
+    File: [./components/tables/tbprint.c], Function: [AcpiTbFixString].
+    File: [./components/tables/tbprint.c], Function: [AcpiTbCleanupTableHeader].
+  File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsUnmapMemory].
+  File: [./components/utilities/utcksum.c], Function: [AcpiUtVerifyChecksum].
+    File: [./components/utilities/utcksum.c], Function: [AcpiUtGenerateChecksum].
+    File: [./components/utilities/utcksum.c], Function: [AcpiUtChecksum].
+    File: [./components/utilities/utcksum.c], Function: [AcpiUtVerifyCdatChecksum].
+  File: [./components/tables/tbutils.c], Function: [AcpiTbGetRootTableEntry].
+  File: [./components/tables/tbinstal.c], Function: [AcpiTbInstallStandardTable].
+  File: [./components/tables/tbfadt.c], Function: [AcpiTbParseFadt].
+    File: [./components/tables/tbutils.c], Function: [AcpiTbGetTable].
+      File: [./components/tables/tbdata.c], Function: [AcpiTbValidateTable].
+        File: [./components/tables/tbdata.c], Function: [AcpiTbAcquireTable].
+        File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsMapMemory].
+    File: [./components/utilities/utcksum.c], Function: [AcpiUtVerifyChecksum].
+    File: [./components/tables/tbfadt.c], Function: [AcpiTbCreateLocalFadt].
+    File: [./components/tables/tbfadt.c], Function: [AcpiTbConvertFadt].
+    File: [./components/tables/tbfadt.c], Function: [AcpiTbSelectAddress].
+    File: [./components/tables/tbfadt.c], Function: [AcpiTbInitGenericAddress].
+    File: [./components/tables/tbfadt.c], Function: [AcpiTbSetupFadtRegisters].
+    File: [./components/tables/tbutils.c], Function: [AcpiTbPutTable].
+      File: [./components/tables/tbdata.c], Function: [AcpiTbInvalidateTable].
+        File: [./components/tables/tbdata.c], Function: [AcpiTbReleaseTable].
+        File: [./os_specific/service_layers/osunixxf.c], Function: [AcpiOsUnmapMemory].
+    File: [./components/tables/tbinstal.c], Function: [AcpiTbInstallStandardTable].

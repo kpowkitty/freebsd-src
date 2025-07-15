@@ -1,0 +1,197 @@
+Already visited function AcpiEvaluateObject, skipping to avoid cycles
+Already visited function AcpiEvaluateObject, skipping to avoid cycles
+Already visited function AcpiNsValidateHandle, skipping
+Skipping ACPI_FUNCTION_ENTRY()
+Skipping ACPI_GET_DESCRIPTOR_TYPE()
+Skipping ACPI_CAST_PTR()
+Already visited function AcpiNsResolveReferences, skipping to avoid cycles
+Already visited function AcpiUtGetObjectSize, skipping
+Skipping ACPI_FUNCTION_ENTRY()
+Skipping ACPI_GET_DESCRIPTOR_TYPE()
+Already visited function AcpiUtGetPackageObjectSize, skipping to avoid cycles
+Skipping ACPI_FUNCTION_TRACE_PTR()
+Already visited function AcpiUtWalkPackageTree, skipping
+Skipping ACPI_FUNCTION_TRACE()
+Already visited function AcpiUtCreatePkgState, skipping
+Skipping ACPI_FUNCTION_ENTRY()
+Already visited function AcpiUtCreateGenericState, skipping to avoid cycles
+Skipping ACPI_FUNCTION_ENTRY()
+Already visited function AcpiOsAcquireObject, skipping
+Skipping ACPI_FUNCTION_TRACE()
+Skipping return_PTR()
+Already visited function AcpiUtAcquireMutex, skipping
+Skipping ACPI_FUNCTION_NAME()
+Already visited function AcpiOsGetThreadId, skipping
+Skipping ACPI_CAST_PTHREAD_T()
+Skipping ACPI_ERROR()
+Already visited function AcpiUtGetMutexName, skipping
+Skipping ACPI_DEBUG_PRINT()
+Skipping ACPI_FAILURE()
+Skipping ACPI_MEM_TRACKING()
+Skipping ACPI_GET_DESCRIPTOR_PTR()
+Skipping ACPI_DEBUG_PRINT_RAW()
+Already visited function AcpiUtReleaseMutex, skipping
+Skipping ACPI_FUNCTION_NAME()
+Skipping ACPI_DEBUG_PRINT()
+Already visited function AcpiOsGetThreadId, skipping to avoid cycles
+Already visited function AcpiUtGetMutexName, skipping to avoid cycles
+Skipping ACPI_ERROR()
+Skipping ACPI_ALLOCATE_ZEROED()
+Skipping return_ACPI_STATUS()
+Skipping ACPI_GET_DESCRIPTOR_TYPE()
+Skipping ACPI_FAILURE()
+Already visited function AcpiUtDeleteGenericState, skipping
+Skipping ACPI_FUNCTION_ENTRY()
+Already visited function AcpiOsReleaseObject, skipping
+Skipping ACPI_FUNCTION_ENTRY()
+Skipping ACPI_FREE()
+Skipping ACPI_MEM_TRACKING()
+Already visited function AcpiUtAcquireMutex, skipping to avoid cycles
+Skipping ACPI_FAILURE()
+Skipping ACPI_SET_DESCRIPTOR_TYPE()
+Skipping ACPI_SET_DESCRIPTOR_PTR()
+Already visited function AcpiUtReleaseMutex, skipping to avoid cycles
+Already visited function AcpiUtPopGenericState, skipping
+Already visited function         ACPI_MODULE_NAME   "utstate"), skipping to avoid cycles
+Already visited function AcpiUtCreateControlState, skipping to avoid cycles
+Skipping ACPI_FUNCTION_ENTRY()
+Already visited function AcpiUtCreateGenericState, skipping
+Skipping ACPI_FUNCTION_ENTRY()
+Already visited function AcpiOsAcquireObject, skipping to avoid cycles
+Already visited function AcpiUtCreatePkgState, skipping
+Skipping ACPI_FUNCTION_ENTRY()
+Already visited function AcpiUtCreateGenericState, skipping
+Skipping ACPI_FUNCTION_ENTRY()
+Already visited function AcpiOsAcquireObject, skipping to avoid cycles
+Already visited function AcpiUtCreateThreadState, skipping to avoid cycles
+Skipping ACPI_FUNCTION_ENTRY()
+Already visited function AcpiUtCreateGenericState, skipping
+Skipping ACPI_FUNCTION_ENTRY()
+Already visited function AcpiOsAcquireObject, skipping to avoid cycles
+Already visited function AcpiOsGetThreadId, skipping to avoid cycles
+Skipping ACPI_ERROR()
+Already visited function AcpiUtCreateUpdateState, skipping to avoid cycles
+Skipping ACPI_FUNCTION_ENTRY()
+Already visited function AcpiUtCreateGenericState, skipping
+Skipping ACPI_FUNCTION_ENTRY()
+Already visited function AcpiOsAcquireObject, skipping to avoid cycles
+Already visited function AcpiUtDeleteGenericState, skipping
+Skipping ACPI_FUNCTION_ENTRY()
+Already visited function AcpiOsReleaseObject, skipping to avoid cycles
+Already visited function AcpiUtPopGenericState, skipping
+Skipping ACPI_ERROR()
+Already visited function AcpiUtGetElementLength, skipping to avoid cycles
+Already visited function AcpiUtGetSimpleObjectSize, skipping to avoid cycles
+Skipping ACPI_FUNCTION_TRACE_PTR()
+Skipping ACPI_ROUND_UP_TO_NATIVE_WORD()
+Skipping return_ACPI_STATUS()
+Skipping ACPI_GET_DESCRIPTOR_TYPE()
+Skipping ACPI_ERROR()
+Skipping ACPI_CAST_PTR()
+Already visited function AcpiNsGetPathnameLength, skipping
+Skipping ACPI_GET_DESCRIPTOR_TYPE()
+Skipping ACPI_ERROR()
+Already visited function AcpiNsBuildNormalizedPath, skipping to avoid cycles
+Skipping ACPI_FUNCTION_TRACE_PTR()
+Skipping ACPI_PATH_PUT8()
+Skipping ACPI_MOVE_32_TO_32()
+Skipping return_UINT32()
+Already visited function AcpiUtGetReferenceName, skipping
+Skipping ACPI_GET_DESCRIPTOR_TYPE()
+Already visited function AcpiUtGetObjectTypeName, skipping
+Skipping ACPI_FUNCTION_TRACE()
+Skipping ACPI_DEBUG_PRINT()
+Skipping return_STR()
+Skipping ACPI_GET_DESCRIPTOR_TYPE()
+Already visited function AcpiUtGetDescriptorName, skipping to avoid cycles
+Skipping ACPI_GET_DESCRIPTOR_TYPE()
+Already visited function AcpiUtGetTypeName, skipping to avoid cycles
+Skipping ACPI_FAILURE()
+Skipping ACPI_FAILURE()
+Skipping return_ACPI_STATUS()
+Skipping ACPI_ROUND_UP_TO_NATIVE_WORD()
+Already visited function AcpiUtGetSimpleObjectSize, skipping
+Skipping ACPI_FUNCTION_TRACE_PTR()
+Skipping ACPI_ROUND_UP_TO_NATIVE_WORD()
+Skipping return_ACPI_STATUS()
+Skipping ACPI_GET_DESCRIPTOR_TYPE()
+Skipping ACPI_ERROR()
+Skipping ACPI_CAST_PTR()
+Already visited function AcpiNsGetPathnameLength, skipping to avoid cycles
+Already visited function AcpiUtGetReferenceName, skipping to avoid cycles
+Already visited function AcpiUtGetObjectTypeName, skipping to avoid cycles
+Already visited function AcpiUtInitializeBuffer, skipping
+Skipping ACPI_ALLOCATE()
+Already visited function AcpiExEnterInterpreter, skipping
+Skipping ACPI_FUNCTION_TRACE()
+Already visited function AcpiUtAcquireMutex, skipping to avoid cycles
+Skipping ACPI_FAILURE()
+Skipping ACPI_ERROR()
+Already visited function AcpiExExitInterpreter, skipping
+Skipping ACPI_FUNCTION_TRACE()
+Already visited function AcpiUtReleaseMutex, skipping to avoid cycles
+Skipping ACPI_FAILURE()
+Skipping ACPI_ERROR()
+Skipping ACPI_FUNCTION_NAME()
+Skipping ACPI_GET_DESCRIPTOR_TYPE()
+Already visited function AcpiUtValidInternalObject, skipping
+Skipping ACPI_FUNCTION_NAME()
+Skipping ACPI_DEBUG_PRINT()
+Skipping ACPI_GET_DESCRIPTOR_TYPE()
+Already visited function AcpiUtGetDescriptorName, skipping to avoid cycles
+Skipping ACPI_DEBUG_PRINT_RAW()
+Skipping ACPI_FUNCTION_NAME()
+Skipping ACPI_GET_DESCRIPTOR_TYPE()
+Skipping ACPI_DEBUG_PRINT()
+Skipping ACPI_FUNCTION_NAME()
+Already visited function AcpiOsAcquireLock, skipping
+Already visited function AcpiOsWaitSemaphore, skipping to avoid cycles
+Already visited function AcpiOsReleaseLock, skipping
+Already visited function AcpiOsSignalSemaphore, skipping to avoid cycles
+Skipping ACPI_WARNING()
+Skipping ACPI_DEBUG_PRINT()
+Already visited function AcpiUtGetObjectTypeName, skipping to avoid cycles
+Skipping ACPI_DEBUG_PRINT_RAW()
+Skipping ACPI_FUNCTION_TRACE_PTR()
+Skipping ACPI_DEBUG_PRINT()
+Already visited function AcpiEvDeleteGpeBlock, skipping
+Skipping ACPI_FUNCTION_TRACE()
+Already visited function AcpiUtAcquireMutex, skipping to avoid cycles
+Skipping ACPI_FAILURE()
+Skipping return_ACPI_STATUS()
+Already visited function AcpiHwDisableGpeBlock, skipping
+Already visited function AcpiHwGpeEnableWrite, skipping to avoid cycles
+Skipping ACPI_FAILURE()
+Already visited function AcpiEvDeleteGpeXrupt, skipping
+Skipping ACPI_FUNCTION_TRACE()
+Skipping return_ACPI_STATUS()
+Already visited function AcpiOsRemoveInterruptHandler, skipping
+Skipping ACPI_FAILURE()
+Already visited function AcpiOsAcquireLock, skipping to avoid cycles
+Already visited function AcpiOsReleaseLock, skipping to avoid cycles
+Skipping ACPI_FREE()
+Already visited function AcpiOsAcquireLock, skipping to avoid cycles
+Already visited function AcpiOsReleaseLock, skipping to avoid cycles
+Skipping ACPI_FREE()
+Already visited function AcpiUtReleaseMutex, skipping to avoid cycles
+Already visited function AcpiOsDeleteSemaphore, skipping
+Already visited function AcpiUtDeleteInternalObjectList, skipping
+Skipping ACPI_FUNCTION_ENTRY()
+Skipping ACPI_FUNCTION_NAME()
+Skipping ACPI_GET_DESCRIPTOR_TYPE()
+Already visited function AcpiUtValidInternalObject, skipping to avoid cycles
+Skipping ACPI_DEBUG_PRINT_RAW()
+Skipping ACPI_FUNCTION_NAME()
+Skipping ACPI_GET_DESCRIPTOR_TYPE()
+Skipping ACPI_DEBUG_PRINT()
+Skipping ACPI_FUNCTION_NAME()
+Already visited function AcpiOsAcquireLock, skipping to avoid cycles
+Already visited function AcpiOsReleaseLock, skipping to avoid cycles
+Skipping ACPI_WARNING()
+Skipping ACPI_DEBUG_PRINT()
+Already visited function AcpiUtGetObjectTypeName, skipping to avoid cycles
+Skipping ACPI_DEBUG_PRINT_RAW()
+Skipping ACPI_FUNCTION_TRACE_PTR()
+Skipping ACPI_DEBUG_PRINT()
+Already visited function AcpiEvDeleteGpeBlock, skipping to avoid cycles
+Already visited function AcpiOsDeleteSemaphore, skipping to avoid cycles
