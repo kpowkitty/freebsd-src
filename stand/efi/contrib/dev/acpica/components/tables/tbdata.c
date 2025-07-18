@@ -953,7 +953,6 @@ AcpiTbTerminate (
     return_VOID;
 }
 
-#ifndef ACPI_EXCLUDE
 /*******************************************************************************
  *
  * FUNCTION:    AcpiTbDeleteNamespaceByOwner
@@ -1080,7 +1079,6 @@ AcpiTbReleaseOwnerId (
     (void) AcpiUtReleaseMutex (ACPI_MTX_TABLES);
     return_ACPI_STATUS (Status);
 }
-#endif /* ACPI_EXCLUDE */
 
 /*******************************************************************************
  *
@@ -1185,7 +1183,6 @@ AcpiTbSetTableLoadedFlag (
     (void) AcpiUtReleaseMutex (ACPI_MTX_TABLES);
 }
 
-#ifndef ACPI_EXCLUDE
 /*******************************************************************************
  *
  * FUNCTION:    AcpiTbLoadTable
@@ -1344,7 +1341,6 @@ AcpiTbUnloadTable (
     AcpiTbSetTableLoadedFlag (TableIndex, FALSE);
     return_ACPI_STATUS (Status);
 }
-#endif /* ACPI_EXCLUDE */
 
 
 /*******************************************************************************

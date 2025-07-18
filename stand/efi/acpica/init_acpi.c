@@ -112,12 +112,20 @@ acpi_Startup(void)
 	}
 
 	/* Enable the ACPI subsystem. */
-	uint32_t flags = ACPI_NO_HARDWARE_INIT | ACPI_NO_EVENT_INIT | ACPI_NO_ACPI_ENABLE;
+	uint32_t flags = ACPI_REDUCED_HARDWARE | ACPI_NO_ACPI_ENABLE;
 	if (ACPI_FAILURE(status = AcpiEnableSubsystem(flags))) {
 		printf("ACPI: Enable subsystem failed: %s\n",
 		    AcpiFormatException(status));
 		return_VALUE (status);
 	}
+
+	/* Create the ACPI namespace from ACPI tables. */
+	if (ACPI_FAILURE(status = AcpiLoadTables())) {
+		printf("ACPI: Load tables failed: %s\n",
+		    AcpiFormatException(status));
+		return_VALUE (status);
+	}
+
 	
 	return_VALUE (status);
 }

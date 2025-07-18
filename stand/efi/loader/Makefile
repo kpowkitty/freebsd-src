@@ -43,8 +43,16 @@ CFLAGS+=	-DACPI_USE_SYSTEM_CLIBRARY \
 SRCS+=	libefi.c \
 	OsdMemory.c \
 	osunixxf.c \
-	utglobal.c \
 	utinit.c \
+	utglobal.c \
+	utresrc.c \
+	utlock.c \
+	utownerid.c \
+	utcopy.c \
+	uthex.c \
+	utmath.c \
+	utstrsuppt.c \
+	utstrtoul64.c \
 	utpredef.c \
 	uterror.c \
 	uteval.c \
@@ -66,7 +74,9 @@ SRCS+=	libefi.c \
 	utosi.c \
 	utstring.c \
 	utxfinit.c \
+	utnonansi.c \
 	utstate.c \
+	tbxfload.c \
 	tbdata.c \
 	tbfadt.c \
 	tbinstal.c \
@@ -75,6 +85,16 @@ SRCS+=	libefi.c \
 	tbxface.c \
 	tbxfroot.c \
 	tbfind.c \
+	nsxfobj.c \
+	nsxfeval.c \
+	nsinit.c \
+	nsparse.c \
+	nsload.c \
+	nsrepair2.c \
+	nsconvert.c \
+	nsrepair.c \
+	nsprepkg.c \
+	nsarguments.c \
 	nseval.c \
 	nsxfname.c \
 	nsdump.c \
@@ -85,16 +105,74 @@ SRCS+=	libefi.c \
 	nsaccess.c \
 	nsalloc.c \
 	nsobject.c \
+	nspredef.c \
+	dsinit.c \
+	dsfield.c \
+	dspkginit.c \
+	dsopcode.c \
+	dsdebug.c \
+	dsmethod.c \
+	dscontrol.c \
+	dsobject.c \
+	dsutils.c \
+	dswexec.c \
+	dswload2.c \
+	dswload.c \
+	dsmthdat.c \
+	dswstate.c \
+	dsargs.c \
 	dswscope.c \
+	exregion.c \
+	exfldio.c \
+	exserial.c \
+	exstorob.c \
+	exstoren.c \
+	exdebug.c \
+	exmutex.c \
+	exconcat.c \
+	exmisc.c \
+	exconfig.c \
+	excreate.c \
+	exoparg6.c \
+	exoparg3.c \
+	exoparg2.c \
+	exoparg1.c \
+	exdump.c \
+	exprep.c \
+	exresop.c \
+	exsystem.c \
+	exnames.c \
+	exresolv.c \
+	exstore.c \
+	exfield.c \
+	exconvrt.c \
+	exresnte.c \
 	exutils.c \
 	extrace.c \
+	hwpci.c \
 	hwregs.c \
 	hwxface.c \
 	hwvalid.c \
 	hwacpi.c \
+	evmisc.c \
+	evregion.c \
+	evrgnini.c \
 	evxface.c \
 	evevent.c \
 	evxfevnt.c \
+	evhandler.c \
+	evxfregn.c \
+	psobject.c \
+	psloop.c \
+	pstree.c \
+	pswalk.c \
+	psopinfo.c \
+	psscope.c \
+	psutils.c \
+	psargs.c \
+	psparse.c \
+	psxface.c \
+	psopcode.c \
 	init_acpi.c \
 	init_conf.c
 
@@ -135,6 +213,7 @@ CWARNFLAGS.main.c+=	-Wno-format
 .PATH: ${.CURDIR}/../contrib/dev/acpica/components/utilities
 .PATH: ${.CURDIR}/../contrib/dev/acpica/components/hardware
 .PATH: ${.CURDIR}/../contrib/dev/acpica/components/events
+.PATH: ${SYSDIR}/contrib/dev/acpica/os_specific/service_layers
 .PATH: ${SYSDIR}/contrib/dev/acpica/components/tables
 .PATH: ${SYSDIR}/contrib/dev/acpica/components/namespace
 .PATH: ${SYSDIR}/contrib/dev/acpica/components/utilities
@@ -142,6 +221,7 @@ CWARNFLAGS.main.c+=	-Wno-format
 .PATH: ${SYSDIR}/contrib/dev/acpica/components/executer
 .PATH: ${SYSDIR}/contrib/dev/acpica/components/hardware
 .PATH: ${SYSDIR}/contrib/dev/acpica/components/events
+.PATH: ${SYSDIR}/contrib/dev/acpica/components/parser
 .include "${.CURDIR}/../loader/arch/${__arch}/Makefile.inc"
 
 CFLAGS+=	-I${.CURDIR}
