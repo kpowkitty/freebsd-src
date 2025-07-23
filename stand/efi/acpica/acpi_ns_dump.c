@@ -4,7 +4,7 @@
 
 #include <acpi.h>
 
-#include "init_acpi.h"
+#include "acpi_ns_dump.h"
 
 ACPI_STATUS dump_acpi_node(ACPI_HANDLE handle, UINT32 level,
     void *context, void **retval) 
@@ -42,7 +42,7 @@ ACPI_STATUS dump_acpi_node(ACPI_HANDLE handle, UINT32 level,
 /*
  * Confirmation unit test for ACPI initialization in loader.
  */
-void acpi_dump(void) 
+void acpi_ns_dump(void) 
 {
 	AcpiWalkNamespace(ACPI_TYPE_ANY, ACPI_ROOT_OBJECT, UINT32_MAX,
             dump_acpi_node, NULL, NULL, NULL);

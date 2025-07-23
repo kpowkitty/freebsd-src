@@ -70,7 +70,7 @@
 #include "actbl.h"
 
 #include <init_acpi.h>
-#include <init_conf.h>
+#include <acpi_ns_dump.h>
 
 #include "loader_efi.h"
 
@@ -1233,7 +1233,7 @@ main(int argc, CHAR16 *argv[])
 		printf("Failed to acpi_identify().");
 	}
 
-	init_conf();
+	acpi_ns_dump();
 	
 	/*
 	 * Detect console settings two different ways: one via the command

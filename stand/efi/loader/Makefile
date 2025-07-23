@@ -96,7 +96,7 @@ SRCS+=	libefi.c \
 	evevent.c \
 	evxfevnt.c \
 	init_acpi.c \
-	init_conf.c
+	acpi_ns_dump.c
 
 CFLAGS+=	-I${.CURDIR}/../loader
 .if ${MK_LOADER_ZFS} != "no"
