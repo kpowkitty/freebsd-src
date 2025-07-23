@@ -1,9 +1,15 @@
+#include "opt_acpi.h"
+
 #include <sys/param.h>
-#include <sys/module.h>
-#include <sys/kernel.h>
+#include <sys/types.h>
 #include <sys/systm.h>
-#include <dev/acpica/acpivar.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
+#include <sys/bus.h>
+#include <sys/kobj.h>
+
 #include <contrib/dev/acpica/include/acpi.h>
+#include <dev/acpica/acpivar.h>
 
 static ACPI_STATUS
 dump_acpi_node(ACPI_HANDLE handle, UINT32 level, void *context, void **retval)
@@ -53,9 +59,16 @@ acpi_ns_dump_event(module_t mod, int event, void *arg)
     default:
         return EOPNOTSUPP;
     }
+
     return 0;
 }
 
-DEV_MODULE(acpi_ns_dump, acpi_ns_dump_event, NULL);
-MODULE_DEPEND(acpi_ns_dump, acpi, 1, 1, 1);
+static moduledata_t acpi_ns_dump_mod = {
+	"acpi_ns_dump",
+	acpi_ns_dump_event,
+	NULL
+};
 
+DECLARE_MODULE(acpi_ns_dump, acpi_ns_dump_mod, SI_SUB_DRIVERS, SI_ORDER_ANY);
+MODULE_DEPEND(acpi_ns_dump, acpi, 1, 1, 1);
+MODULE_VERSION(acpi_ns_dump, 1);
