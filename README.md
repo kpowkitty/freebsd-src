@@ -1,47 +1,80 @@
-FreeBSD Source:
+# Google Summer of Code 2025 @ FreeBSD
+Mentor: Warner Losh @bsdimp <imp@FreeBSD.org>  
+Student: Kayla (Kat) Powell @kpowkitty <kpowkitty@FreeBSD.org>
 ---------------
-This is the top level of the FreeBSD source directory.
+## ACPI Initialization in Loader with Lua Bindings
+Intel's Advanced Configuration and Power Interface (ACPI) brought power management out of the BIOS
+and into the operating system. We can make it even more powerful by creating an interface
+to script it. Currently, the scripting language of choice in FreeBSD (rather than POSIX `sh`, `bash`, or `awk`) 
+is Lua. Therefore, this project aims to initialize a portion of ACPI in the FreeBSD bootloader, with respect
+to its storage, memory, and stdlib constraints, so we can enumerate and evaluate objects on the device trees to
+provide an interface to Lua.
 
-FreeBSD is an operating system used to power modern servers, desktops, and embedded platforms.
-A large community has continually developed it for more than thirty years.
-Its advanced networking, security, and storage features have made FreeBSD the platform of choice for many of the busiest web sites and most pervasive embedded networking and storage devices.
+## Milestones
+[x] `OsdMemory.c` for `amd64` (`arm64` postponed)  
+[x] `AcpiInitializeSubsystem`  
+[x] `AcpiInitializeTables`  
+[x] `AcpiEnableSubsystem` in reduced hardware mode, with events enabled  
+[x] `AcpiLoadTables`  
+[x] `AcpiWalkNamespace`  
+[x] `AcpiEvaluateObject`  
+[x] ACPICA initialized in loader for `amd64`  
+[ ] Enumerate the ACPI Namespace into human-readable API layer  
+[ ] Lua API functionality for evaluating objects  
+[ ] Demonstration Lua scripts & man page/handbook update  
 
-For copyright information, please see [the file COPYRIGHT](COPYRIGHT) in this directory.
-Additional copyright information also exists for some sources in this tree - please see the specific source directories for more information.
+**Future goals of this project include arm64 compat.**
 
-The Makefile in this directory supports a number of targets for building components (or all) of the FreeBSD source tree.
-See build(7), config(8), [FreeBSD handbook on building userland](https://docs.freebsd.org/en/books/handbook/cutting-edge/#makeworld), and [Handbook for kernels](https://docs.freebsd.org/en/books/handbook/kernelconfig/) for more information, including setting make(1) variables.
+### For more information, please consult these resources:
+[My FreeBSD project wiki page](https://wiki.freebsd.org/SummerOfCode2025Projects/ACPI%20Initialization%20in%20Loader%20With%20Lua%20Bindings)  
+[My write-up](https://kmpow.com/content/gsoc-writeup)
 
-For information on the CPU architectures and platforms supported by FreeBSD, see the [FreeBSD
-website's Platforms page](https://www.freebsd.org/platforms/).
-
-For official FreeBSD bootable images, see the [release page](https://download.freebsd.org/ftp/releases/ISO-IMAGES/).
-
-Source Roadmap:
 ---------------
-| Directory | Description |
-| --------- | ----------- |
-| bin | System/user commands. |
-| cddl | Various commands and libraries under the Common Development and Distribution License. |
-| contrib | Packages contributed by 3rd parties. |
-| crypto | Cryptography stuff (see [crypto/README](crypto/README)). |
-| etc | Template files for /etc. |
-| gnu | Commands and libraries under the GNU General Public License (GPL) or Lesser General Public License (LGPL). Please see [gnu/COPYING](gnu/COPYING) and [gnu/COPYING.LIB](gnu/COPYING.LIB) for more information. |
-| include | System include files. |
-| kerberos5 | Kerberos5 (Heimdal) package. |
-| lib | System libraries. |
-| libexec | System daemons. |
-| release | Release building Makefile & associated tools. |
-| rescue | Build system for statically linked /rescue utilities. |
-| sbin | System commands. |
-| secure | Cryptographic libraries and commands. |
-| share | Shared resources. |
-| stand | Boot loader sources. |
-| sys | Kernel sources (see [sys/README.md](sys/README.md)). |
-| targets | Support for experimental `DIRDEPS_BUILD` |
-| tests | Regression tests which can be run by Kyua.  See [tests/README](tests/README) for additional information. |
-| tools | Utilities for regression testing and miscellaneous tasks. |
-| usr.bin | User commands. |
-| usr.sbin | System administration commands. |
 
-For information on synchronizing your source tree with one or more of the FreeBSD Project's development branches, please see [FreeBSD Handbook](https://docs.freebsd.org/en/books/handbook/cutting-edge/#current-stable).
+## Building
+This project requires an amd64 UEFI FreeBSD system.
+
+The current working version of this project is found on branch `acpi_init`.
+
+1. Clone the repo & change branches  
+```
+$ git clone git@github.com:kpowkitty/freebsd-src.git
+$ git checkout acpi_init
+```
+
+2. Build the necessary dependencies
+```
+$ cd stand
+$ make libsa
+$ make liblua
+$ cd efi
+$ make libefi
+```
+
+3. Build the loader (`-j max_jobs`, where `max_jobs` specifies the number of jobs that `make` can run when you call it)
+```
+$ cd loader
+$ make -j max_jobs
+```
+
+4. Install the `loader.efi` image
+```
+# make install
+# cp /boot/loader.efi /boot/path/to/your/loader.efi
+```
+
+5. Reboot
+```
+# shutdown -r now
+```
+
+At this point, when your system restarts, ACPI has gone through the initialization
+sequence in the loader. If using QEMU, one can redirect serial output to a file and
+see "Successful initialization of ACPI" message if built correctly.  
+There is nothing of significance being done with it yet, though.  
+The next leg of this project will be using this initialization of ACPI to walk the 
+namespace and enumerate its objects into an API layer for Lua.
+
+## System Recovery
+In general cases, to recover your system, you need to mount your drive 
+on a live iso and replace your drive's `loader.efi` with the live iso image's `loader.efi`. 
