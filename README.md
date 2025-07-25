@@ -1,6 +1,6 @@
 # Google Summer of Code 2025 @ FreeBSD
-Mentor: Warner Losh @bsdimp
-Student: Kayla (Kat) Powell @kpowkitty
+Mentor: Warner Losh @bsdimp <imp@FreeBSD.org>  
+Student: Kayla (Kat) Powell @kpowkitty <kpowkitty@FreeBSD.org>
 ---------------
 ## ACPI Initialization in Loader with Lua Bindings
 Intel's Advanced Configuration and Power Interface (ACPI) brought power management out of the BIOS
