@@ -25,7 +25,9 @@ provide an interface to Lua.
 
 **Future goals of this project include arm64 compat.**
 
-## For more information, please consult [my write-up](https://kmpow.com/content/gsoc-writeup)
+## For more information, please consult these resources:
+[My FreeBSD project wiki page](https://wiki.freebsd.org/SummerOfCode2025Projects/ACPI%20Initialization%20in%20Loader%20With%20Lua%20Bindings)  
+[My write-up](https://kmpow.com/content/gsoc-writeup)
 
 ---------------
 
