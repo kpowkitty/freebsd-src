@@ -27,9 +27,6 @@
 #ifndef INIT_ACPI_H
 #define INIT_ACPI_H
 
-#include <efi.h>
-#include <efilib.h>
-
 #define ACPI_LOADER 0x00020000
 
 ACPI_STATUS acpi_Startup(void);
