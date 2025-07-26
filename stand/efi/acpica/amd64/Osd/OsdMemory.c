@@ -29,6 +29,7 @@
 #include <acpi.h>
 
 #include <init_acpi.h>
+#include <acpi_detect.h>
 
 void *
 AcpiOsAllocate(ACPI_SIZE Size)
