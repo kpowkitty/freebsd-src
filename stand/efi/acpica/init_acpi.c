@@ -24,16 +24,10 @@
  * SUCH DAMAGE.
  */
 
-#include <machine/_inttypes.h>
-
-#include <efi.h>
-
 #include <stand.h>
-
 #include <acpi.h>
 #include <accommon.h>
 #include <acoutput.h>
-
 #include <init_acpi.h>
 
 #define _COMPONENT ACPI_LOADER
