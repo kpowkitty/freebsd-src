@@ -24,10 +24,6 @@
  * SUCH DAMAGE.
  */
 
-#include <machine/_inttypes.h>
-
-#include <efi.h>
-
 #include <stand.h>
 
 #include <acpi.h>
@@ -92,6 +88,8 @@ acpi_Startup(void)
 		    AcpiFormatException(status));
 		return_VALUE (status);
 	}
+
+	printf("Successfully initialized ACPI.\n");
 
 	return_VALUE (status);
 }

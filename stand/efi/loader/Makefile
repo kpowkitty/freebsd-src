@@ -34,9 +34,10 @@ SRCS=	autoload.c \
 SRCS+= acpi_detect.c
 .PATH: ${.CURDIR}/../acpica
 
+.if ${MACHINE_ARCH} == "amd64"
 SRCS+= OsdMemory.c osunixxf.c
 
-.PATH: ${.CURDIR}/../acpica/amd64/Osd
+.PATH: ${.CURDIR}/../acpica/amd64/Osd/
 .PATH: ${.CURDIR}/../contrib/dev/acpica/os_specific/service_layers
 
 CFLAGS+=	-DACPI_SINGLE_THREADED \
@@ -77,6 +78,7 @@ SRCS+=	libefi.c utinit.c utglobal.c utresrc.c utlock.c utownerid.c \
 .PATH: ${SYSDIR}/contrib/dev/acpica/components/hardware
 .PATH: ${SYSDIR}/contrib/dev/acpica/components/events
 .PATH: ${SYSDIR}/contrib/dev/acpica/components/parser
+.endif # ACPICA
 
 CFLAGS+=	-I${.CURDIR}/../loader
 .if ${MK_LOADER_ZFS} != "no"
