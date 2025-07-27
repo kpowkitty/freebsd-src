@@ -26,8 +26,8 @@ provide an interface to Lua.
 **Future goals of this project include arm64 compat.**
 
 ### For more information, please consult these resources:
-[My FreeBSD project wiki page](https://wiki.freebsd.org/SummerOfCode2025Projects/ACPI%20Initialization%20in%20Loader%20With%20Lua%20Bindings)  
-[My write-up](https://kmpow.com/content/gsoc-writeup)
+[ACPICA Lua Bindings FreeBSD project wiki page](https://wiki.freebsd.org/SummerOfCode2025Projects/ACPI%20Initialization%20in%20Loader%20With%20Lua%20Bindings)  
+[Write-up](https://kmpow.com/content/gsoc-writeup)
 
 ---------------
 
@@ -71,7 +71,6 @@ $ make -j max_jobs
 At this point, when your system restarts, ACPI has gone through the initialization
 sequence in the loader. If using QEMU, one can redirect serial output to a file and
 see "Successful initialization of ACPI" message if built correctly.  
-There is nothing of significance being done with it yet, though.  
 The next leg of this project will be using this initialization of ACPI to walk the 
 namespace and enumerate its objects into an API layer for Lua.
 
