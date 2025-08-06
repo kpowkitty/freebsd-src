@@ -67,6 +67,11 @@ SRCS+=	libefi.c utinit.c utglobal.c utresrc.c utlock.c utownerid.c \
 	hwacpi.c evmisc.c evregion.c evrgnini.c evxface.c evevent.c evxfevnt.c \
 	evhandler.c evxfregn.c psobject.c psloop.c pstree.c pswalk.c psopinfo.c \
 	psscope.c psutils.c psargs.c psparse.c psxface.c psopcode.c init_acpi.c
+
+# lua
+.PATH: ${.CURDIR}/../../liblua/acpi
+SRCS+= lacpi.c
+CFLAGS+= -I${.CURDIR}/../../liblua/acpi 
 .endif
 
 .PATH: ${.CURDIR}/../libefi
@@ -196,8 +201,8 @@ LIBEFI32=	${BOOTOBJ}/efi/libefi32/libefi.a
 DPADD=		${LDR_INTERP32} ${LIBEFI32} ${LIBSA32} ${LDSCRIPT}
 LDADD=		${LDR_INTERP32} ${LIBEFI32} ${LIBSA32}
 .else
-DPADD=		${LDR_INTERP} ${LIBEFI} ${LIBSAFDT} ${LIBEFI_FDT} ${LIBSA} ${LDSCRIPT}
-LDADD=		${LDR_INTERP} ${LIBEFI} ${LIBSAFDT} ${LIBEFI_FDT} ${LIBSA}
+DPADD=		${LDR_INTERP} ${LIBEFI} ${LIBSAFDT} ${LIBEFI_FDT} ${LIBSA} ${LDSCRIPT} ${LIBLUA}
+LDADD=		${LDR_INTERP} ${LIBEFI} ${LIBSAFDT} ${LIBEFI_FDT} ${LIBSA} ${LIBLUA}
 .endif
 
 .include <bsd.prog.mk>
