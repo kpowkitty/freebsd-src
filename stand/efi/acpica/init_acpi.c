@@ -26,9 +26,9 @@
 
 #include <stand.h>
 
-#include <acpi.h>
-#include <accommon.h>
-#include <acoutput.h>
+#include <contrib/dev/acpica/include/acpi.h>
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acoutput.h>
 
 #include <init_acpi.h>
 
