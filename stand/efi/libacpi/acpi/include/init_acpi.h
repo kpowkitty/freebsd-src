@@ -29,6 +29,7 @@
 
 #include <efi.h>
 #include <efilib.h>
+#include <contrib/dev/acpica/include/acpi.h>
 
 #define ACPI_LOADER 0x00020000
 

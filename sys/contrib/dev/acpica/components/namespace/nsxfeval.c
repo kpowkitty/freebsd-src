@@ -820,7 +820,6 @@ UnlockAndExit:
 
 ACPI_EXPORT_SYMBOL (AcpiWalkNamespace)
 
-#ifndef _STANDALONE
 /*******************************************************************************
  *
  * FUNCTION:    AcpiNsGetDeviceCallback
@@ -1211,5 +1210,3 @@ UnlockAndExit:
 }
 
 ACPI_EXPORT_SYMBOL (AcpiGetData)
-
-#endif /* !_STANDALONE */
