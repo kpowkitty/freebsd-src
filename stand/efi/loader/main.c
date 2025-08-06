@@ -66,12 +66,13 @@
 #include "platform/acfreebsd.h"
 #include "acconfig.h"
 #define ACPI_SYSTEM_XFACE
-#include "actypes.h"
-#include "actbl.h"
 
 #if defined(__amd64__)
 #include <init_acpi.h>
+#include <lacpi.h>
 #endif
+#include "actypes.h" // init_acpi creates redefinition
+#include "actbl.h"
 #include <acpi_detect.h>
 
 #include "loader_efi.h"
@@ -1238,6 +1239,8 @@ main(int argc, CHAR16 *argv[])
 	if ((ret = init_acpi()) != 0) {
 		printf("Failed to initialize ACPI\n.");
 	}
+
+	lacpi_interp_ref();
 #endif
 
 	/*
