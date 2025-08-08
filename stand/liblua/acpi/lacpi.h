@@ -21,4 +21,9 @@ SET_DECLARE(lua_acpi_modules, struct lua_acpi_module);
 	};							\
 	DATA_SET(lua_acpi_modules, lua_##name)
 
+extern struct lacpi_handle {
+	const char*	pathname;
+	ACPI_HANDLE 	handle;
+};
+
 #endif
