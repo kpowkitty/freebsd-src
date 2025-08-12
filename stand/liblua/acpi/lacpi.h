@@ -1,5 +1,4 @@
-#ifndef _LACPI_H_
-#define _LACPI_H_
+#pragma once
 
 #include <lua.h>
 #include <sys/linker_set.h>
@@ -25,5 +24,3 @@ extern struct lacpi_handle {
 	const char*	pathname;
 	ACPI_HANDLE 	handle;
 };
-
-#endif

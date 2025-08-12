@@ -31,7 +31,7 @@ SRCS+=	lhash.c
 
 # ACPI
 .PATH: ${LIBLUASRC}/acpi ${EFISRC}/acpica
-SRCS+=  lacpi.c init_acpi.c
+SRCS+=  lacpi_object.c init_acpi.c
 CFLAGS+= -I${LIBLUASRC}/acpi -I${EFISRC}/acpica/include -I${SYSDIR}/contrib/dev/acpica/include
 
 WARNS?=	3
