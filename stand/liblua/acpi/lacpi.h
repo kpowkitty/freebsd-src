@@ -3,6 +3,8 @@
 #include <lua.h>
 #include <sys/linker_set.h>
 
+#include <contrib/dev/acpica/include/acpi.h>
+
 typedef int (*lua_module_init_fn)(lua_State *L);
 
 struct lua_acpi_module {
