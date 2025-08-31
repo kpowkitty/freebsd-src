@@ -69,6 +69,8 @@
 #include "actypes.h"
 #include "actbl.h"
 
+#include <init_acpi.h>
+
 #include "loader_efi.h"
 
 struct arch_switch archsw = {	/* MI/MD interface boundary */
@@ -1211,6 +1213,7 @@ main(int argc, CHAR16 *argv[])
 	char boot_info[4096];
 	char buf[32];
 	bool uefi_boot_mgr;
+	int ret = 0;
 
 #if !defined(__arm__)
 	efi_smbios_detect();
@@ -1266,6 +1269,11 @@ main(int argc, CHAR16 *argv[])
 	}
 
 	devinit();
+
+	/* Initialize ACPI Subsystem and Tables. */
+	if ((ret = init_acpi()) != 0) {
+		printf("Failed to initialize ACPI\n.");
+	}
 
 	/*
 	 * Detect console settings two different ways: one via the command
