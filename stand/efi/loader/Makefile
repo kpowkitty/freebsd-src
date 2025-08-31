@@ -31,6 +31,9 @@ SRCS=	autoload.c \
 	8x16.c
 
 # ACPICA Loader Initialization
+SRCS+= acpi_detect.c
+.PATH: ${.CURDIR}/../acpica
+
 SRCS+= OsdMemory.c osunixxf.c
 
 .PATH: ${.CURDIR}/../acpica/amd64/Osd
