@@ -5,6 +5,8 @@ NO_OBJ=t
 SUBDIR.yes+=	libefi
 SUBDIR.${MK_LOADER_IA32}+=	libefi32
 SUBDIR.${MK_FDT}+=	fdt
+SUBDIR.yes+=	libacpi
+SUBDIR.${MK_LOADER_IA32}+=	libacpi32
 SUBDIR.yes+=	.WAIT
 
 SUBDIR.yes+=	boot1 gptboot
@@ -13,5 +15,9 @@ SUBDIR.${MK_FORTH}+= loader_4th
 SUBDIR.${MK_LOADER_LUA}+= loader_lua
 SUBDIR.${MK_LOADER_IA32}+= loader_ia32
 SUBDIR.yes+=	loader_simp
+
+.if !defined(MK_FORTH) && !defined(MK_LOADER_IA32) && defined(MK_LOADER_LUA)
+SUBDIR.yes+=	liblua
+.endif
 
 .include <bsd.subdir.mk>
