@@ -1,4 +1,4 @@
-/*
+/*-
  * Copyright (c) 2025 Kayla Powell <kpowkitty@FreeBSD.org>
  * All rights reserved.
  *
@@ -26,6 +26,9 @@
 
 #ifndef INIT_ACPI_H
 #define INIT_ACPI_H
+
+#include <efi.h>
+#include <efilib.h>
 
 #define ACPI_LOADER 0x00020000
 

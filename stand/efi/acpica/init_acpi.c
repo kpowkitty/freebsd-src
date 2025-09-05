@@ -1,4 +1,4 @@
-/*
+/*-
  * Copyright (c) 2025 Kayla Powell <kpowkitty@FreeBSD.org>
  * All rights reserved.
  *
@@ -24,11 +24,15 @@
  * SUCH DAMAGE.
  */
 
+#include <machine/_inttypes.h>
+
+#include <efi.h>
+
 #include <stand.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
-#include <contrib/dev/acpica/include/acoutput.h>
+#include <acpi.h>
+#include <accommon.h>
+#include <acoutput.h>
 
 #include <init_acpi.h>
 
@@ -39,27 +43,39 @@ ACPI_MODULE_NAME("init_acpi");
 static int acpi_inited = 0;
 
 /*
- * Intialize the ACPI subsystem and tables.
+ * Initialize a smaller subset of the ACPI subsystem in the
+ * loader. This subset is enough for users to evaluate
+ * objects on the namespace, and includes event management.
+ *
+ * This function brings up the ACPICA core in four stages:
+ * 1. Initialize the ACPICA subsystem.
+ * 2. Initialize and validate ACPI root tables.
+ * 3. Enable the subsystem (without full hardware mode, but events
+ *     enabled).
+ * 4. Load ACPI tables into the namespace.
+ *
+ * Returns ACPI_STATUS; failure indicates issue reading RSDT/XSDT.
+ * Please refer to your motherboard manual to verify ACPI support.
  */
 ACPI_STATUS
 acpi_Startup(void)
 {
 	ACPI_STATUS status;
-	
+
 	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
-	
+
 	/* Initialize the ACPICA subsystem. */
 	if (ACPI_FAILURE(status = AcpiInitializeSubsystem())) {
 		printf("ACPI: Could not initialize Subsystem: %s\n",
 		    AcpiFormatException(status));
-		return_VALUE (status);
+		return_VALUE(status);
 	}
-	
+
 	/* Initialize the ACPICA tables. */
 	if (ACPI_FAILURE(status = AcpiInitializeTables(NULL, 2, TRUE))) {
 		printf("ACPI: Table initialisation failed: %s\n",
 		    AcpiFormatException(status));
-		return_VALUE (status);
+		return_VALUE(status);
 	}
 
 	/* Enable the ACPI subsystem. */
@@ -67,23 +83,26 @@ acpi_Startup(void)
 	if (ACPI_FAILURE(status = AcpiEnableSubsystem(flags))) {
 		printf("ACPI: Enable subsystem failed: %s\n",
 		    AcpiFormatException(status));
-		return_VALUE (status);
+		return_VALUE(status);
 	}
 
 	/* Create the ACPI namespace from ACPI tables. */
 	if (ACPI_FAILURE(status = AcpiLoadTables())) {
 		printf("ACPI: Load tables failed: %s\n",
 		    AcpiFormatException(status));
-		return_VALUE (status);
+		return_VALUE(status);
 	}
 
-	printf("Successfully initialized ACPI.\n");
-
-	return_VALUE (status);
+	return_VALUE(status);
 }
 
 /*
- * Detect ACPI and perform early initialisation.
+ * Initialize ACPI once for the loader.
+ *
+ * This is a singleton entry point. Safe to call multiple times;
+ * subsequent calls will return success immediately.
+ *
+ * Returns 0 on success, ENXIO if ACPI could not be initialized.
  */
 int
 init_acpi(void)
@@ -93,18 +112,17 @@ init_acpi(void)
 	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
 
 	if (acpi_inited) {
-		return 0;
+		return (0);
 	}
-	
-	/* Initialize root tables. */
+
 	if (ACPI_FAILURE(status = acpi_Startup())) {
-		printf("ACPI: Startup failed with status %s\n", AcpiFormatException(status));
-		printf("ACPI: Try disabling either ACPI or apic support.\n");
+		printf("ACPI: Loader initialization failed with status %s\n",
+		    AcpiFormatException(status));
 		return (ENXIO);
 	}
-	
+
 	acpi_inited = 1;
-	
+
 	return (0);
 }
 
@@ -114,5 +132,5 @@ init_acpi(void)
 int
 acpi_is_initialized(void) 
 {
-	return acpi_inited;
+	return (acpi_inited);
 }
