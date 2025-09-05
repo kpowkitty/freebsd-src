@@ -30,9 +30,13 @@ SRCS+=	lfs.c
 SRCS+=	lhash.c
 
 # ACPI
-.PATH: ${LIBLUASRC}/acpi ${EFISRC}/acpica
-SRCS+=  lacpi_object.c init_acpi.c
-CFLAGS+= -I${LIBLUASRC}/acpi -I${EFISRC}/acpica/include -I${SYSDIR}/contrib/dev/acpica/include
+.if ${MACHINE_CPUARCH} == "amd64"
+.PATH: ${LIBLUASRC}/acpi
+SRCS+=  lacpi.c lacpi_object.c lacpi_factory.c
+CFLAGS+= -I${LIBLUASRC}/acpi -I${SYSDIR}/contrib/dev/acpica/include
+DPADD+=	${LIBACPI}
+LDADD+= ${LIBACPI}
+.endif
 
 WARNS?=	3
 

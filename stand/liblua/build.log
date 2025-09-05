@@ -1,0 +1,121 @@
+--- lacpi.o ---
+--- lutils.o ---
+--- lacpi_object.o ---
+--- lacpi.o ---
+cc  -O2 -pipe -fno-common   -nostdinc    -I/usr/obj/usr/src/amd64.amd64/stand/libsa -I/usr/src/stand/libsa -D_STANDALONE -I/usr/src/sys -Ddouble=jagged-little-pill -Dfloat=floaty-mcfloatface -ffunction-sections -fdata-sections -DLOADER_GELI_SUPPORT -I/usr/src/stand/libsa/geli -DLOADER_DISK_SUPPORT -ffreestanding -mno-mmx -mno-sse -mno-avx -mno-avx2 -msoft-float -fPIC -mno-red-zone -mno-relax -I. -Iinclude -I/usr/src/contrib/lua/src -I/usr/src/stand/common -I/usr/src/stand/liblua -I/usr/src/stand/liblua/acpi -I/usr/src/sys/contrib/dev/acpica/include -DLUA_PATH=\"/boot/lua\" -DLUA_PATH_DEFAULT=\"/boot/lua/\?.lua\" -ffreestanding -nostdlib -DLUA_USE_POSIX -fno-stack-protector -D__BSD_VISIBLE -I/usr/src/stand/include -I/usr/src/stand/liblua -I/usr/src/contrib/lua/src -I/usr/src/stand/common -fPIC -g -gz=zlib -MD  -MF.depend.lacpi.o -MTlacpi.o -std=gnu17 -Wno-format-zero-length -Wsystem-headers -Werror -Wno-pointer-sign -Wdate-time -Wno-empty-body -Wno-string-plus-int -Wno-unused-const-variable -Wno-error=unused-but-set-parameter -Wno-error=cast-function-type-mismatch -Wno-tautological-compare -Wno-unused-value -Wno-parentheses-equality -Wno-unused-function -Wno-enum-conversion -Wno-unused-local-typedef -Wno-address-of-packed-member -Wno-switch -Wno-switch-enum -Wno-knr-promoted-parameter -Wno-parentheses  -Oz -Qunused-arguments     -c /usr/src/stand/liblua/acpi/lacpi.c -o lacpi.o
+--- lacpi_object.o ---
+cc  -O2 -pipe -fno-common   -nostdinc    -I/usr/obj/usr/src/amd64.amd64/stand/libsa -I/usr/src/stand/libsa -D_STANDALONE -I/usr/src/sys -Ddouble=jagged-little-pill -Dfloat=floaty-mcfloatface -ffunction-sections -fdata-sections -DLOADER_GELI_SUPPORT -I/usr/src/stand/libsa/geli -DLOADER_DISK_SUPPORT -ffreestanding -mno-mmx -mno-sse -mno-avx -mno-avx2 -msoft-float -fPIC -mno-red-zone -mno-relax -I. -Iinclude -I/usr/src/contrib/lua/src -I/usr/src/stand/common -I/usr/src/stand/liblua -I/usr/src/stand/liblua/acpi -I/usr/src/sys/contrib/dev/acpica/include -DLUA_PATH=\"/boot/lua\" -DLUA_PATH_DEFAULT=\"/boot/lua/\?.lua\" -ffreestanding -nostdlib -DLUA_USE_POSIX -fno-stack-protector -D__BSD_VISIBLE -I/usr/src/stand/include -I/usr/src/stand/liblua -I/usr/src/contrib/lua/src -I/usr/src/stand/common -fPIC -g -gz=zlib -MD  -MF.depend.lacpi_object.o -MTlacpi_object.o -std=gnu17 -Wno-format-zero-length -Wsystem-headers -Werror -Wno-pointer-sign -Wdate-time -Wno-empty-body -Wno-string-plus-int -Wno-unused-const-variable -Wno-error=unused-but-set-parameter -Wno-error=cast-function-type-mismatch -Wno-tautological-compare -Wno-unused-value -Wno-parentheses-equality -Wno-unused-function -Wno-enum-conversion -Wno-unused-local-typedef -Wno-address-of-packed-member -Wno-switch -Wno-switch-enum -Wno-knr-promoted-parameter -Wno-parentheses  -Oz -Qunused-arguments     -c /usr/src/stand/liblua/acpi/lacpi_object.c -o lacpi_object.o
+--- lutils.o ---
+cc  -O2 -pipe -fno-common   -nostdinc    -I/usr/obj/usr/src/amd64.amd64/stand/libsa -I/usr/src/stand/libsa -D_STANDALONE -I/usr/src/sys -Ddouble=jagged-little-pill -Dfloat=floaty-mcfloatface -ffunction-sections -fdata-sections -DLOADER_GELI_SUPPORT -I/usr/src/stand/libsa/geli -DLOADER_DISK_SUPPORT -ffreestanding -mno-mmx -mno-sse -mno-avx -mno-avx2 -msoft-float -fPIC -mno-red-zone -mno-relax -I. -Iinclude -I/usr/src/contrib/lua/src -I/usr/src/stand/common -I/usr/src/stand/liblua -I/usr/src/stand/liblua/acpi -I/usr/src/sys/contrib/dev/acpica/include -DLUA_PATH=\"/boot/lua\" -DLUA_PATH_DEFAULT=\"/boot/lua/\?.lua\" -ffreestanding -nostdlib -DLUA_USE_POSIX -fno-stack-protector -D__BSD_VISIBLE -I/usr/src/stand/include -I/usr/src/stand/liblua -I/usr/src/contrib/lua/src -I/usr/src/stand/common -fPIC -g -gz=zlib -MD  -MF.depend.lutils.o -MTlutils.o -std=gnu17 -Wno-format-zero-length -Wsystem-headers -Werror -Wno-pointer-sign -Wdate-time -Wno-empty-body -Wno-string-plus-int -Wno-unused-const-variable -Wno-error=unused-but-set-parameter -Wno-error=cast-function-type-mismatch -Wno-tautological-compare -Wno-unused-value -Wno-parentheses-equality -Wno-unused-function -Wno-enum-conversion -Wno-unused-local-typedef -Wno-address-of-packed-member -Wno-switch -Wno-switch-enum -Wno-knr-promoted-parameter -Wno-parentheses  -Oz -Qunused-arguments     -c /usr/src/stand/liblua/lutils.c -o lutils.o
+--- lacpi_object.o ---
+/usr/src/stand/liblua/acpi/lacpi_object.c:35:68: error: invalid application of 'sizeof' to an incomplete type 'struct lacpi_node'
+--- lacpi.o ---
+/usr/src/stand/liblua/acpi/lacpi.c:2:10: fatal error: 'init_acpi.h' file not found
+    2 | #include <init_acpi.h>
+      |          ^~~~~~~~~~~~~
+1 error generated.
+*** [lacpi.o] Error code 1
+
+make: stopped making "all" in /usr/src/stand/liblua
+--- lacpi_object.o ---
+   35 |         struct lacpi_node *node = (struct lacpi_node *)lua_newuserdata(L, sizeof(struct lacpi_node));
+      |                                                                           ^     ~~~~~~~~~~~~~~~~~~~
+/usr/src/contrib/lua/src/lua.h:423:50: note: expanded from macro 'lua_newuserdata'
+  423 | #define lua_newuserdata(L,s)    lua_newuserdatauv(L,s,1)
+      |                                                     ^
+/usr/src/stand/liblua/acpi/lacpi_object.c:35:9: note: forward declaration of 'struct lacpi_node'
+   35 |         struct lacpi_node *node = (struct lacpi_node *)lua_newuserdata(L, sizeof(struct lacpi_node));
+      |                ^
+/usr/src/stand/liblua/acpi/lacpi_object.c:37:6: error: incomplete definition of type 'struct lacpi_node'
+   37 |         node->name = strdup(pathname);
+      |         ~~~~^
+/usr/src/stand/liblua/acpi/lacpi_object.c:35:9: note: forward declaration of 'struct lacpi_node'
+   35 |         struct lacpi_node *node = (struct lacpi_node *)lua_newuserdata(L, sizeof(struct lacpi_node));
+      |                ^
+/usr/src/stand/liblua/acpi/lacpi_object.c:38:10: error: incomplete definition of type 'struct lacpi_node'
+   38 |         if (node->name == NULL) {
+      |             ~~~~^
+/usr/src/stand/liblua/acpi/lacpi_object.c:35:9: note: forward declaration of 'struct lacpi_node'
+   35 |         struct lacpi_node *node = (struct lacpi_node *)lua_newuserdata(L, sizeof(struct lacpi_node));
+      |                ^
+/usr/src/stand/liblua/acpi/lacpi_object.c:42:6: error: incomplete definition of type 'struct lacpi_node'
+   42 |         node->handle = handle;
+      |         ~~~~^
+/usr/src/stand/liblua/acpi/lacpi_object.c:35:9: note: forward declaration of 'struct lacpi_node'
+   35 |         struct lacpi_node *node = (struct lacpi_node *)lua_newuserdata(L, sizeof(struct lacpi_node));
+      |                ^
+/usr/src/stand/liblua/acpi/lacpi_object.c:104:4: error: call to undeclared function 'build_acpi_obj'; ISO C99 and later do not support implicit function declarations [-Werror,-Wimplicit-function-declaration]
+  104 |                         build_acpi_obj(L, &objs[i], obj_type);
+      |                         ^
+/usr/src/stand/liblua/acpi/lacpi_object.c:115:55: error: passing 'const char *' to parameter of type 'ACPI_STRING' (aka 'char *') discards qualifiers [-Werror,-Wincompatible-pointer-types-discards-qualifiers]
+  115 |         if (ACPI_FAILURE(status = AcpiEvaluateObject(handle, pathname, 
+      |                                                              ^~~~~~~~
+/usr/src/sys/contrib/dev/acpica/include/acexcep.h:203:42: note: expanded from macro 'ACPI_FAILURE'
+  203 | #define ACPI_FAILURE(a)                 (a)
+      |                                          ^
+/usr/src/sys/contrib/dev/acpica/include/acpixf.h:816:29: note: passing argument to parameter 'Pathname' here
+  816 |     ACPI_STRING             Pathname,
+      |                             ^
+/usr/src/stand/liblua/acpi/lacpi_object.c:122:3: error: call to undeclared function 'free_acpi_objs'; ISO C99 and later do not support implicit function declarations [-Werror,-Wimplicit-function-declaration]
+  122 |                 free_acpi_objs(objs, obj_count);
+      |                 ^
+/usr/src/stand/liblua/acpi/lacpi_object.c:134:5: error: call to undeclared function 'push_acpi_obj'; ISO C99 and later do not support implicit function declarations [-Werror,-Wimplicit-function-declaration]
+  134 |                                 push_acpi_obj(L, &ret_obj->Package.Elements[i]);
+      |                                 ^
+/usr/src/stand/liblua/acpi/lacpi_object.c:138:4: error: call to undeclared function 'push_acpi_obj'; ISO C99 and later do not support implicit function declarations [-Werror,-Wimplicit-function-declaration]
+  138 |                         push_acpi_obj(L, (ACPI_OBJECT *)return_buffer.Pointer);
+      |                         ^
+/usr/src/stand/liblua/acpi/lacpi_object.c:143:3: error: call to undeclared function 'free_acpi_objs'; ISO C99 and later do not support implicit function declarations [-Werror,-Wimplicit-function-declaration]
+  143 |                 free_acpi_objs(objs, obj_count);
+      |                 ^
+/usr/src/stand/liblua/acpi/lacpi_object.c:150:1: error: static declaration of 'build_acpi_obj' follows non-static declaration
+  150 | build_acpi_obj(lua_State *L, ACPI_OBJECT *obj, UINT32 obj_type)
+      | ^
+/usr/src/stand/liblua/acpi/lacpi_object.c:104:4: note: previous implicit declaration is here
+  104 |                         build_acpi_obj(L, &objs[i], obj_type);
+      |                         ^
+/usr/src/stand/liblua/acpi/lacpi_object.c:155:4: error: call to undeclared function 'build_int'; ISO C99 and later do not support implicit function declarations [-Werror,-Wimplicit-function-declaration]
+  155 |                         build_int(L, obj);
+      |                         ^
+/usr/src/stand/liblua/acpi/lacpi_object.c:158:4: error: call to undeclared function 'build_str'; ISO C99 and later do not support implicit function declarations [-Werror,-Wimplicit-function-declaration]
+  158 |                         build_str(L, obj);
+      |                         ^
+/usr/src/stand/liblua/acpi/lacpi_object.c:161:4: error: call to undeclared function 'build_buff'; ISO C99 and later do not support implicit function declarations [-Werror,-Wimplicit-function-declaration]
+  161 |                         build_buff(L, obj);
+      |                         ^
+/usr/src/stand/liblua/acpi/lacpi_object.c:164:4: error: call to undeclared function 'build_pkg'; ISO C99 and later do not support implicit function declarations [-Werror,-Wimplicit-function-declaration]
+  164 |                         build_pkg(L, obj);
+      |                         ^
+/usr/src/stand/liblua/acpi/lacpi_object.c:172:1: error: static declaration of 'build_int' follows non-static declaration
+  172 | build_int(lua_State *L, ACPI_OBJECT *obj)
+      | ^
+/usr/src/stand/liblua/acpi/lacpi_object.c:155:4: note: previous implicit declaration is here
+  155 |                         build_int(L, obj);
+      |                         ^
+/usr/src/stand/liblua/acpi/lacpi_object.c:182:1: error: static declaration of 'build_str' follows non-static declaration
+  182 | build_str(lua_State *L, ACPI_OBJECT *obj)
+      | ^
+/usr/src/stand/liblua/acpi/lacpi_object.c:158:4: note: previous implicit declaration is here
+  158 |                         build_str(L, obj);
+      |                         ^
+/usr/src/stand/liblua/acpi/lacpi_object.c:194:1: error: static declaration of 'build_buff' follows non-static declaration
+  194 | build_buff(lua_State *L, ACPI_OBJECT *obj)
+      | ^
+/usr/src/stand/liblua/acpi/lacpi_object.c:161:4: note: previous implicit declaration is here
+  161 |                         build_buff(L, obj);
+      |                         ^
+/usr/src/stand/liblua/acpi/lacpi_object.c:206:1: error: static declaration of 'build_pkg' follows non-static declaration
+  206 | build_pkg(lua_State *L, ACPI_OBJECT *obj)
+      | ^
+/usr/src/stand/liblua/acpi/lacpi_object.c:164:4: note: previous implicit declaration is here
+  164 |                         build_pkg(L, obj);
+      |                         ^
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+20 errors generated.
+*** [lacpi_object.o] Error code 1
+
+make: stopped making "all" in /usr/src/stand/liblua
+--- lutils.o ---
+
+
+make: stopped making "all" in /usr/src/stand/liblua

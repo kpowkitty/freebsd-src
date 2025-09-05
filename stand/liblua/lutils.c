@@ -35,7 +35,8 @@
 
 #include <lacpi.h>
 #include <contrib/dev/acpica/include/acpi.h>
-#include <init_acpi.h>
+
+lua_acpi_registration_fn lua_acpi_register = NULL;
 
 /*
  * Like loader.perform, except args are passed already parsed
@@ -450,12 +451,9 @@ lua_add_features(lua_State *L)
 void
 register_lacpi_modules(lua_State *L)
 {
-    struct lua_acpi_module **mod;
-
-    SET_FOREACH(mod, lua_acpi_modules) {
-        (*mod)->init(L);
-	lua_setglobal(L, (*mod)->mod_name);
-    }
+	if (lua_acpi_register != NULL) {
+		lua_acpi_register(L);
+	}
 }
 
 int
@@ -485,9 +483,7 @@ luaopen_loader(lua_State *L)
 	/* Set global printc to loader.printc */
 	lua_register(L, "printc", lua_printc);
 	
-	if (acpi_is_initialized()) {
-		register_lacpi_modules(L);
-	}
+	register_lacpi_modules(L);
 
 	return 1;
 }

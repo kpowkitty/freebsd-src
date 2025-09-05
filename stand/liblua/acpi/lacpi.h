@@ -2,10 +2,10 @@
 
 #include <lua.h>
 #include <sys/linker_set.h>
-
 #include <contrib/dev/acpica/include/acpi.h>
 
 typedef int (*lua_module_init_fn)(lua_State *L);
+extern void lacpi_object_interp_ref(void);
 
 struct lua_acpi_module {
 	const char *mod_name;
@@ -22,7 +22,7 @@ SET_DECLARE(lua_acpi_modules, struct lua_acpi_module);
 	};							\
 	DATA_SET(lua_acpi_modules, lua_##name)
 
-extern struct lacpi_handle {
+struct lacpi_handle {
 	const char*	pathname;
 	ACPI_HANDLE 	handle;
 };

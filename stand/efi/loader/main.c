@@ -1236,6 +1236,9 @@ main(int argc, CHAR16 *argv[])
 	if ((ret = init_acpi()) != 0) {
 		printf("Failed to initialize ACPI\n.");
 	}
+
+	lacpi_interp_ref();
+	lua_acpi_register_hook();
 #endif
 
 	/*
