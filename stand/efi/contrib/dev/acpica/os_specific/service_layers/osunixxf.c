@@ -315,20 +315,7 @@ ACPI_STATUS
 AcpiOsInitialize (
     void)
 {
-    ACPI_STATUS            Status;
-
-    // XXX double check
-    // AcpiGbl_OutputFile = stdout;
-
     OsEnterLineEditMode ();
-
-    // XXX
-    /* Status = AcpiOsCreateLock (&AcpiGbl_PrintLock);
-    if (ACPI_FAILURE (Status))
-    {
-        return (Status);
-    }
-    */
 
     return (AE_OK);
 }
@@ -507,35 +494,7 @@ AcpiOsPrintf (
     const char              *Fmt,
     ...)
 {
-    va_list                 Args;
-    UINT8                   Flags;
-
-    /* Do nothing XXX
-    Flags = AcpiGbl_DbOutputFlags;
-    if (Flags & ACPI_DB_REDIRECTABLE_OUTPUT)
-    {
-        {
-            Output file is open, send the output there
-
-            va_start (Args, Fmt);
-            vfprintf (AcpiGbl_DebugFile, Fmt, Args);
-            va_end (Args);
-        }
-        else
-        {
-            No redirection, send output to console (once only!)
-
-            Flags |= ACPI_DB_CONSOLE_OUTPUT;
-        }
-    }
-
-    if (Flags & ACPI_DB_CONSOLE_OUTPUT)
-    {
-        va_start (Args, Fmt);
-        vfprintf (AcpiGbl_OutputFile, Fmt, Args);
-        va_end (Args);
-    }
-    */
+    /* No-op */
 }
 
 
@@ -559,34 +518,7 @@ AcpiOsVprintf (
     const char              *Fmt,
     va_list                 Args)
 {
-    UINT8                   Flags;
-    char                    Buffer[ACPI_VPRINTF_BUFFER_SIZE];
-
-    /* Do nothing - XXX
-    
-     * We build the output string in a local buffer because we may be
-     * outputting the buffer twice. Using vfprintf is problematic because
-     * some implementations modify the args pointer/structure during
-     * execution. Thus, we use the local buffer for portability.
-     *
-     * Note: Since this module is intended for use by the various ACPICA
-     * utilities/applications, we can safely declare the buffer on the stack.
-     * Also, This function is used for relatively small error messages only.
-     
-    vsnprintf (Buffer, ACPI_VPRINTF_BUFFER_SIZE, Fmt, Args);
-
-    Flags = AcpiGbl_DbOutputFlags;
-    if (Flags & ACPI_DB_REDIRECTABLE_OUTPUT)
-    {
-        No redirection, send output to console (once only!)
-        Flags |= ACPI_DB_CONSOLE_OUTPUT;
-    }
-
-    if (Flags & ACPI_DB_CONSOLE_OUTPUT)
-    {
-        fputs (Buffer, AcpiGbl_OutputFile);
-    }
-    */
+    /* No-op */
 }
 
 
@@ -705,30 +637,6 @@ AcpiOsUnmapMemory (
 }
 #endif
 
-/* XXX
-******************************************************************************
- *
- * FUNCTION:    AcpiOsAllocate
- *
- * PARAMETERS:  Size                - Amount to allocate, in bytes
- *
- * RETURN:      Pointer to the new allocation. Null on error.
- *
- * DESCRIPTION: Allocate memory. Algorithm is dependent on the OS.
- *
- *****************************************************************************
-
-void *
-AcpiOsAllocate (
-    ACPI_SIZE               size)
-{
-    void                    *Mem;
-
-
-    Mem = (void *) malloc ((size_t) size);
-    return (Mem);
-}
-*/
 
 #ifdef USE_NATIVE_ALLOCATE_ZEROED
 /******************************************************************************
@@ -755,27 +663,6 @@ AcpiOsAllocateZeroed (
 }
 #endif
 
-/* XXX
-******************************************************************************
- *
- * FUNCTION:    AcpiOsFree
- *
- * PARAMETERS:  mem                 - Pointer to previously allocated memory
- *
- * RETURN:      None.
- *
- * DESCRIPTION: Free memory allocated via AcpiOsAllocate
- *
- *****************************************************************************
-
-void
-AcpiOsFree (
-    void                    *mem)
-{
-
-    free (mem);
-}
-*/
 
 #ifdef ACPI_SINGLE_THREADED
 /******************************************************************************
@@ -1207,12 +1094,7 @@ void
 AcpiOsStall (
     UINT32                  microseconds)
 {
-    /* Do nothing - XXX
-    if (microseconds)
-    {
-        usleep (microseconds);
-    }
-    */
+    /* No-op */
 }
 
 
@@ -1232,17 +1114,7 @@ void
 AcpiOsSleep (
     UINT64                  milliseconds)
 {
-    /* Do nothing - XXX
-     Sleep for whole seconds 
-
-    sleep (milliseconds / ACPI_MSEC_PER_SEC);
-
-    
-     * Sleep for remaining microseconds.
-     * Arg to usleep() is in usecs and must be less than 1,000,000 (1 second).
-     *
-    usleep ((milliseconds % ACPI_MSEC_PER_SEC) * ACPI_USEC_PER_MSEC);
-    */
+    /* No-op */
 }
 
 

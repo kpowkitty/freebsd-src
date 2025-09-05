@@ -33,7 +33,8 @@ SRCS+=	lhash.c
 .if ${MACHINE_CPUARCH} == "amd64"
 .PATH: ${LIBLUASRC}/acpi
 SRCS+=  lacpi.c lacpi_object.c lacpi_factory.c
-CFLAGS+= -I${LIBLUASRC}/acpi -I${SYSDIR}/contrib/dev/acpica/include
+CFLAGS+= -I${LIBLUASRC}/acpi -I${SYSDIR}/contrib/dev/acpica/include \
+	 -I${EFISRC}/acpica/include
 DPADD+=	${LIBACPI}
 LDADD+= ${LIBACPI}
 .endif
