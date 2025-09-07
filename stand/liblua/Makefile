@@ -32,7 +32,7 @@ SRCS+=	lhash.c
 # ACPI
 .if ${MACHINE_CPUARCH} == "amd64" && ${DO32:U0} == 0
 .PATH: ${LIBLUASRC}/acpi
-SRCS+=  lacpi.c lacpi_object.c lacpi_utils.c
+SRCS+=  lacpi.c lacpi_object.c lacpi_utils.c lacpi_data.c
 CFLAGS+= -I${SYSDIR}/contrib/dev/acpica/include \
 	 -I${EFISRC}/libacpi/acpi/include -I${EFISRC}/include \
 	 -I${EFISRC}/include/amd64 -I${LIBLUASRC}/acpi/include

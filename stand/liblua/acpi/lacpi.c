@@ -5,6 +5,7 @@
 #include <contrib/dev/acpica/include/acpi.h>
 #include "lacpi.h"
 #include "lacpi_object.h"
+#include "lacpi_data.h"
 
 /*
  * Reference set for all lacpi modules.
@@ -13,6 +14,7 @@ void
 lacpi_interp_ref(void)
 {
 	lacpi_object_interp_ref();
+	lacpi_data_interp_ref();
 }
 
 /*
@@ -45,6 +47,8 @@ luaopen_lacpi(lua_State *L)
 {
 	lua_newtable(L);
 
+	luaopen_lacpi_data(L);
+	lua_setfield(L, -2, "data");
 	luaopen_lacpi_object(L);
 	lua_setfield(L, -2, "object");
 
