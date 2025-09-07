@@ -365,7 +365,6 @@ free_acpi_obj(ACPI_OBJECT *obj)
 			case ACPI_TYPE_PACKAGE:
 				free_pkg(obj);
 				break;
-
 			default:
 				assert(obj == NULL);
 				break;

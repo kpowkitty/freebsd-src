@@ -4,6 +4,7 @@
 #include "lacpi.h"
 #include "lacpi_object.h"
 #include "lacpi_walk.h"
+#include "lacpi_data.h"
 
 /*
  * Reference set for all lacpi modules.
@@ -13,6 +14,7 @@ lacpi_interp_ref(void)
 {
 	lacpi_object_interp_ref();
 	lacpi_walk_interp_ref();
+	lacpi_data_interp_ref();
 }
 
 int
@@ -25,6 +27,9 @@ luaopen_lacpi(lua_State *L)
 
 	luaopen_lacpi_walk(L);
 	lua_setfield(L, -2, "walk");
+	
+	luaopen_lacpi_data(L);
+	lua_setfield(L, -2, "data");
 
 	return 1;
 }
