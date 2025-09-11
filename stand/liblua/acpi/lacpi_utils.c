@@ -8,6 +8,18 @@ void build_acpi_obj(lua_State *L, ACPI_OBJECT *obj, UINT32 obj_type);
 void push_acpi_obj(lua_State *L, ACPI_OBJECT *obj);
 void free_acpi_obj(ACPI_OBJECT *obj);
 
+/***** UTILITY *****/
+
+ACPI_HANDLE
+lua_check_handle(lua_State *L, int idx)
+{
+	if (lua_islightuserdata(L, idx)) {
+		return (ACPI_HANDLE)lua_touserdata(L, idx);
+	}
+
+	return NULL;
+}
+
 int
 lacpi_create_mt_gc(lua_State *L, const char *mt, lua_CFunction gc_func)
 {
@@ -32,6 +44,10 @@ lua_int_to_uint32(lua_State *L, int index, const char *errmsg)
 
 	return (UINT32)temp;
 }
+
+/***** FACTORY *****/
+
+/*** ACPI_OBJECT ***/
 
 void
 build_int(lua_State *L, ACPI_OBJECT *obj)
@@ -371,4 +387,86 @@ free_acpi_objs(ACPI_OBJECT *objs, UINT32 obj_count)
 		free(objs);
 		objs = NULL;
 	}
+}
+
+/*** ACPI Namespace Node ***/
+
+/*
+ * Creates a key, value pair for the path of the current
+ * namespace node.
+ */
+void
+push_path(struct context *curr_ctx, const char *path)
+{
+    lua_pushstring(curr_ctx->L, "path");
+    lua_pushstring(curr_ctx->L, path);
+    lua_settable(curr_ctx->L, -3);
+}
+
+/*
+ * Creates a key, value pair for the level of the current
+ * namespace node.
+ */
+void
+push_level(struct context *curr_ctx, UINT32 level)
+{
+    lua_pushstring(curr_ctx->L, "level");
+    lua_pushinteger(curr_ctx->L, level);
+    lua_settable(curr_ctx->L, -3);
+}
+
+/*
+ * Creates a key, value pair for the hid of the current
+ * namespace node.
+ */
+void
+push_hid(struct context *curr_ctx, const char *hid)
+{
+    lua_pushstring(curr_ctx->L, "HID");
+    lua_pushstring(curr_ctx->L, hid);
+    lua_settable(curr_ctx->L, -3);
+}
+
+/*
+ * Creates a key, value pair for the uid of the current
+ * namespace node.
+ */
+void
+push_uid(struct context *curr_ctx, const char *uid)
+{
+    lua_pushstring(curr_ctx->L, "UID");
+    lua_pushstring(curr_ctx->L, uid);
+    lua_settable(curr_ctx->L, -3);
+}
+
+/*
+ * Generates a Lua table for the current namespace node and
+ * sets it into our root table.
+ */
+void
+push_node(struct context *curr_ctx, const char *path, UINT32 level,
+    ACPI_HANDLE handle)
+{
+    if (path != NULL) {
+    	lua_newtable(curr_ctx->L);
+
+    	push_path(curr_ctx, path);
+    	push_level(curr_ctx, level);
+
+    	ACPI_DEVICE_INFO *info = NULL;
+    	if (ACPI_SUCCESS(AcpiGetObjectInfo(handle, &info))) {
+    	    if (info->Valid & ACPI_VALID_HID) {
+    	        push_hid(curr_ctx, info->HardwareId.String);
+    	    }
+    	    
+    	    if (info->Valid & ACPI_VALID_UID) {
+    	        push_uid(curr_ctx, info->UniqueId.String);
+    	    }
+    	    
+    	    ACPI_FREE(info);
+    	}
+
+    	lua_rawseti(curr_ctx->L, curr_ctx->tbl, curr_ctx->idx);
+    	curr_ctx->idx++;
+    }
 }
