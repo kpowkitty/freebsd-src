@@ -486,8 +486,11 @@ luaopen_loader(lua_State *L)
 	lua_add_features(L);
 	/* Set global printc to loader.printc */
 	lua_register(L, "printc", lua_printc);
-	
+
+#if defined(__amd64__)
+	// ACPICA Bindings
 	register_lacpi_modules(L);
+#endif
 
 	return 1;
 }

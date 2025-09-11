@@ -1,7 +1,5 @@
-#include <lua.h>
-#include <lauxlib.h>
-#include <lacpi.h>
-#include "lacpi_object.h"
+#include "lacpi_utils.h"
+#include "lacpi.h"
 #include "lacpi_utils.h"
 #include "lacpi.h"
 
@@ -10,7 +8,7 @@
  *
  * A string containing a valid ACPI pathname must be on 
  * top of the Lua stack.
- * Passes back an opaque pointer to lacpi_node object. 
+ * Passes back an opaque pointer to lacpi_node object.
  */
 static int 
 lAcpiGetHandle(lua_State *L)
@@ -59,7 +57,7 @@ lAcpiEvaluateObject(lua_State *L)
 	
 	const char *rel_path = lua_isstring(L, 2) ? lua_tostring(L, 2) : NULL;
 	const char *abs_path = lua_isstring(L, 3) ? lua_tostring(L, 3) : NULL;
-	
+
 	/*
 	 * We must have either a handle and optionally a relative path,
 	 * or just the absolute path.
@@ -99,13 +97,12 @@ lAcpiEvaluateObject(lua_State *L)
 		obj_list.Count = 0;
 		obj_list.Pointer = NULL;
 	}
-	
+
 	if (ACPI_FAILURE(status = AcpiEvaluateObject(handle, pathname, 
 	    (obj_list.Count > 0) ? &obj_list : NULL, &return_buffer))) {
 		if (return_buffer.Pointer) {
 			AcpiOsFree(return_buffer.Pointer);
 		}
-
 
 		free_acpi_objs(objs, obj_count);
 
@@ -115,7 +112,7 @@ lAcpiEvaluateObject(lua_State *L)
 
 	if (return_buffer.Pointer != NULL) {
 		ACPI_OBJECT *ret_obj = (ACPI_OBJECT *)return_buffer.Pointer;
-
+		
 		if (ret_obj->Type == ACPI_TYPE_PACKAGE) {
 			lua_newtable(L);
 			for (UINT32 i = 0; i < ret_obj->Package.Count; ++i) {
@@ -128,11 +125,17 @@ lAcpiEvaluateObject(lua_State *L)
 
 		AcpiOsFree(return_buffer.Pointer);	
 	}
-	
-	free_acpi_objs(objs, obj_count);
-	free(pathname);
 
-	return 1;
+	if (objs != NULL) {
+		free_acpi_objs(objs, obj_count);
+	}
+
+	if (pathname != NULL) {
+		free(pathname);
+		pathname = NULL;
+	}
+
+	return 0;
 }
 
 static const 

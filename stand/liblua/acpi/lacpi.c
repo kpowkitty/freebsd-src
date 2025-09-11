@@ -1,10 +1,9 @@
 #include <init_acpi.h>
 #include <lutils.h>
-#include <lua.h>
 #include <lauxlib.h>
-#include <contrib/dev/acpica/include/acpi.h>
 #include "lacpi.h"
 #include "lacpi_object.h"
+#include "lacpi_walk.h"
 
 /*
  * Reference set for all lacpi modules.
@@ -13,6 +12,7 @@ void
 lacpi_interp_ref(void)
 {
 	lacpi_object_interp_ref();
+	lacpi_walk_interp_ref();
 }
 
 int
@@ -22,6 +22,9 @@ luaopen_lacpi(lua_State *L)
 
 	luaopen_lacpi_object(L);
 	lua_setfield(L, -2, "object");
+
+	luaopen_lacpi_walk(L);
+	lua_setfield(L, -2, "walk");
 
 	return 1;
 }
