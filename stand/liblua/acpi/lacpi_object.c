@@ -73,20 +73,41 @@ lAcpiEvaluateObject(lua_State *L)
 		return luaL_error(L, "Incorrect arguments");	
 	}
 
+	/*
+	 * 4 is expected to be a table of ACPI_OBJECTs.
+	 * These are passed when the method you are evaluating needs them.
+	 * Each element of this table is converted into an ACPI_OBJECT.
+	 *
+	 * Each element of this table must be a table with:
+	 * 1: obj_type		-- UINT32 specifying the current element's 
+	 *     ACPI_OBJECT_TYPE
+	 * 2..n: fields		-- used to build the corresponding
+	 *     ACPI_OBJECT, where n depends on obj_type. (see actypes.h)
+	 *
+	 */
 	if (lua_istable(L, 4)) {
 		obj_count = lua_rawlen(L, 4);
 		objs = malloc(sizeof(ACPI_OBJECT) * obj_count);
 		if (objs == NULL) {
-			return luaL_error(L, "Failed to malloc objs.");
+			lua_pushnil(L);
+			lua_pushstring(L, "Failed to malloc objs.");
+			return 2;
 		}
 
 		for (int i = 0; i < obj_count; ++i) {
 			lua_rawgeti(L, 4, i + 1);
-		
 			lua_getfield(L, -1, "obj_type");
-			obj_type = lua_int_to_uint32(L, -1, 
-			    "Invalid ACPI Object type");
+			
+			if ((status = lua_int_to_uint32(L, -1, &obj_type)) 
+			    != AE_OK) {
+				lua_pushnil(L);
+				lua_pushstring(L, "ACPI_OBJECT_TYPE must be"
+						" UINT32");
+				free(objs);
+				return 2;
+			}
 			lua_pop(L, 1);
+			
 			build_acpi_obj(L, &objs[i], obj_type);
 			lua_pop(L, 1);
 		}
@@ -106,8 +127,12 @@ lAcpiEvaluateObject(lua_State *L)
 
 		free_acpi_objs(objs, obj_count);
 
-		return luaL_error(L, 
+		char errbuf[64];
+		snprintf(errbuf, sizeof(errbuf),
 		    "AcpiEvaluateObject failed with status 0x%x", status);
+		lua_pushnil(L);
+		lua_pushstring(L, errbuf);
+		return 2;
 	}
 
 	if (return_buffer.Pointer != NULL) {

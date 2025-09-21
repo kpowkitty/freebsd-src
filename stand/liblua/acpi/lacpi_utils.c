@@ -34,15 +34,17 @@ lacpi_create_mt_gc(lua_State *L, const char *mt, lua_CFunction gc_func)
 	return 1;
 }
 
-UINT32
-lua_int_to_uint32(lua_State *L, int index, const char *errmsg)
+int
+lua_int_to_uint32(lua_State *L, int index, UINT32 *out)
 {
 	lua_Integer temp = luaL_checkinteger(L, index);
+
 	if (temp < 0 || temp > UINT32_MAX) {
-		luaL_error(L, "%s", errmsg);
+		return AE_NUMERIC_OVERFLOW;
 	}
 
-	return (UINT32)temp;
+	*out = (UINT32)temp;
+	return AE_OK;
 }
 
 /***** FACTORY *****/
