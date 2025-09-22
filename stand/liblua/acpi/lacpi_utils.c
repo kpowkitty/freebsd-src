@@ -4,14 +4,14 @@
 #include <lualib.h>
 #include "lacpi_utils.h"
 
-void build_acpi_obj(lua_State *L, ACPI_OBJECT *obj, UINT32 obj_type);
+ACPI_STATUS build_acpi_obj(lua_State *L, ACPI_OBJECT *obj, UINT32 obj_type);
 void push_acpi_obj(lua_State *L, ACPI_OBJECT *obj);
 void free_acpi_obj(ACPI_OBJECT *obj);
 
 /***** UTILITY *****/
 
 ACPI_HANDLE
-lua_check_handle(lua_State *L, int idx)
+lacpi_check_handle(lua_State *L, int idx)
 {
 	if (lua_islightuserdata(L, idx)) {
 		return (ACPI_HANDLE)lua_touserdata(L, idx);
@@ -34,8 +34,8 @@ lacpi_create_mt_gc(lua_State *L, const char *mt, lua_CFunction gc_func)
 	return 1;
 }
 
-int
-lua_int_to_uint32(lua_State *L, int index, UINT32 *out)
+ACPI_STATUS
+lacpi_int_to_uint32(lua_State *L, int index, UINT32 *num)
 {
 	lua_Integer temp = luaL_checkinteger(L, index);
 
@@ -43,164 +43,246 @@ lua_int_to_uint32(lua_State *L, int index, UINT32 *out)
 		return AE_NUMERIC_OVERFLOW;
 	}
 
-	*out = (UINT32)temp;
+	*num = (UINT32)temp;
 	return AE_OK;
+}
+
+int
+lacpi_push_err(lua_State *L, const int push_nil, const char *errmsg,
+    const ACPI_STATUS status) 
+{
+	int stack = 0;
+	
+	if (push_nil) {
+		lua_pushnil(L);
+		++stack;
+	}
+
+	if (errmsg != NULL) {
+		lua_pushstring(L, errmsg);
+		++stack;
+
+		if (status > 0) {
+			char *status_msg = lacpi_extract_status(status);
+			lua_pushstring(L, status_msg);
+			++stack;
+		}
+	}
+	
+	return stack;
+}
+
+char *
+lacpi_extract_status(const ACPI_STATUS status)
+{
+	switch (status) {
+		case AE_TYPE:
+			return "Unexpected type found";
+		case AE_NULL_OBJECT:
+			return "Failed to allocate memory";
+		case AE_NUMERIC_OVERFLOW:
+			return "Field on top of Lua stack was not UINT32";
+		case AE_BAD_PARAMETER:
+			return "Failed string assignment off of lua stack";
+		case AE_ERROR:
+		default:
+			return "Unexpected error";
+	}
 }
 
 /***** FACTORY *****/
 
 /*** ACPI_OBJECT ***/
 
-void
+ACPI_STATUS
 build_int(lua_State *L, ACPI_OBJECT *obj)
 {
-	lua_getfield(L, -1, "Integer");
 	obj->Type = ACPI_TYPE_INTEGER;
-	obj->Integer.Value = lua_int_to_uint32(L, -1, 
-	    "ACPI object integer out of range");
+	
+	lua_getfield(L, -1, "Integer");
+	if (!lua_isinteger(L, -1)) {
+		return AE_TYPE;
+	}
+	obj->Integer.Value = lua_tointeger(L, -1);
 	lua_pop(L, 1);
+
+	return AE_OK;
 }
 
-void
+ACPI_STATUS
 build_str(lua_State *L, ACPI_OBJECT *obj)
 {
-	lua_getfield(L, -1, "String");
-	size_t len;
-	const char *str = luaL_checklstring(L, -1, &len);
 	obj->Type = ACPI_TYPE_STRING;
+	
+	lua_getfield(L, -1, "String");
+	if (!lua_isstring(L, -1)) {
+		return AE_TYPE;
+	}
+	size_t len;
+	const char *str = lua_tolstring(L, -1, &len);
+	if (str == NULL) {
+		return AE_BAD_PARAMETER;
+	}
 	obj->String.Pointer = strdup((char *)str);
 	obj->String.Length = (UINT32)len;
 	lua_pop(L, 1);
+
+	return AE_OK;
 }
 
-void
+ACPI_STATUS
 build_buff(lua_State *L, ACPI_OBJECT *obj)
 {
-	lua_getfield(L, -1, "Buffer");
-	size_t len;
-	const char *str = luaL_checklstring(L, -1, &len);
 	obj->Type = ACPI_TYPE_BUFFER;
+	
+	lua_getfield(L, -1, "Buffer");
+	if (!lua_isstring(L, -1)) {
+		return AE_TYPE;
+	}
+	size_t len;
+	const char *str = lua_tolstring(L, -1, &len);
+	if (str == NULL) {
+		return AE_BAD_PARAMETER;
+	}
 	obj->Buffer.Pointer = strdup((char *)str);
+	if (obj->Buffer.Pointer == NULL) {
+		return AE_NULL_OBJECT;
+	}
 	obj->Buffer.Length = (UINT32)len;
 	lua_pop(L, 1);
+
+	return AE_OK;
 }
 
-void
+ACPI_STATUS
 build_pkg(lua_State *L, ACPI_OBJECT *obj)
 {
-	lua_getfield(L, -1, "Elements");
+	ACPI_STATUS status;
 	obj->Type = ACPI_TYPE_PACKAGE;
+	
+	lua_getfield(L, -1, "Elements");
 	obj->Package.Count = lua_rawlen(L, -1);
 	obj->Package.Elements = calloc(obj->Package.Count,
 	    sizeof(ACPI_OBJECT));
 	if (obj->Package.Elements == NULL) {
-		luaL_error(L, "Failed to allocate ACPI package elements");
+		return AE_NULL_OBJECT;
 	}
-
 	for (size_t i = 0; i < obj->Package.Count; ++i) {
 		lua_rawgeti(L, -1, i + 1);
 		lua_getfield(L, -1, "obj_type");
-		UINT32 type = lua_int_to_uint32(L, -1,
-		    "ACPI object type out of range");
+		
+		UINT32 obj_type;
+		if (ACPI_FAILURE(lacpi_int_to_uint32(L, -1, &obj_type))) {
+			free(obj->Package.Elements);
+			return AE_NUMERIC_OVERFLOW;
+		}
 		lua_pop(L, 1);
-		build_acpi_obj(L, &obj->Package.Elements[i], type);
+		
+		if (ACPI_FAILURE(status = build_acpi_obj(L,
+		    &obj->Package.Elements[i], obj_type))) {
+			free(obj->Package.Elements);
+			return status;
+		}
 		lua_pop(L, 1);
 	}
-
 	lua_pop(L, 1);
+	
+	return AE_OK;
 }
 
-int
+ACPI_STATUS
 build_ref(lua_State *L, ACPI_OBJECT *obj)
 {
 	obj->Type = ACPI_TYPE_LOCAL_REFERENCE;
 	
 	lua_getfield(L, -1, "ActualType");
-	obj->Reference.ActualType = lua_int_to_uint32(L, -1,
-	    "ACPI object type out of range");
+	if (ACPI_FAILURE(lacpi_int_to_uint32(L, -1,
+	    &obj->Reference.ActualType))) {
+		return AE_NUMERIC_OVERFLOW;
+	}
 	lua_pop(L, 1);
 
 	lua_getfield(L, -1, "Handle");
-	if (lua_isuserdata(L, -1)) {
-		ACPI_HANDLE handle = *(ACPI_HANDLE *)luaL_checkudata(L, -1, "lacpi_node");
-		obj->Reference.Handle = handle;
-		lua_pop(L, 1);
-	} else {
-		return luaL_error(L, "Handle not provided as first argument");
+	if (!lua_isuserdata(L, -1)) {
+		return AE_TYPE;
 	}
+	ACPI_HANDLE handle = *(ACPI_HANDLE *)luaL_checkudata(L, -1, "lacpi_node");
+	obj->Reference.Handle = handle;
+	lua_pop(L, 1);
 
-	return 0;
+	return AE_OK;
 }
 
-int
+ACPI_STATUS
 build_proc(lua_State *L, ACPI_OBJECT *obj)
 {
 	obj->Type = ACPI_TYPE_PROCESSOR;
 
 	lua_getfield(L, -1, "ProcID");
-	obj->Processor.ProcId = lua_int_to_uint32(L, -1, "ProcId must be UINT32");
+	if (ACPI_FAILURE(lacpi_int_to_uint32(L, -1, &obj->Processor.ProcId))) {
+		return AE_NUMERIC_OVERFLOW;
+	}
 	lua_pop(L, 1);
 	
 	lua_getfield(L, -1, "PblkAddress");
 	if (!lua_isinteger(L, -1)) {
-		return luaL_error(L, 
-		    "Unexpected value after ProcId");
+		return AE_TYPE;
 	}
 	obj->Processor.PblkAddress = (ACPI_IO_ADDRESS)lua_tointeger(L, -1);
 	lua_pop(L, 1);
 	
 	lua_getfield(L, -1, "PblkLength");
-	obj->Processor.PblkLength = lua_int_to_uint32(L, -1, "PblkLength must be UINT32");
+	if (ACPI_FAILURE(lacpi_int_to_uint32(L, -1,
+	    &obj->Processor.PblkLength))) {
+		return AE_TYPE;
+	}
 	lua_pop(L, 1);
 
-	return 0;
+	return AE_OK;
 }
 
-int
+ACPI_STATUS
 build_pow(lua_State *L, ACPI_OBJECT *obj)
 {
 	obj->Type = ACPI_TYPE_POWER;
 
 	lua_getfield(L, -1, "SystemLevel");
-	obj->PowerResource.SystemLevel = lua_int_to_uint32(L, -1,
-	    "SystemLevel must be UINT32");
+	if (ACPI_FAILURE(lacpi_int_to_uint32(L, -1,
+	    &obj->PowerResource.SystemLevel))) {
+		return AE_TYPE;
+	}
 	lua_pop(L, 1);
 
 	lua_getfield(L, -1, "ResourceOrder");
-	obj->PowerResource.ResourceOrder = lua_int_to_uint32(L, -1,
-	    "ResourceOrder must be UINT32");
+	if (ACPI_FAILURE(lacpi_int_to_uint32(L, -1,
+	    &obj->PowerResource.ResourceOrder))) {
+		return AE_TYPE;
+	}
 	lua_pop(L, 1);
 
-	return 0;
+	return AE_OK;
 }
 
-void
+ACPI_STATUS
 build_acpi_obj(lua_State *L, ACPI_OBJECT *obj, UINT32 obj_type)
 {
 	switch(obj_type) {
 		case ACPI_TYPE_INTEGER:
-			build_int(L, obj);
-			break;
+			return build_int(L, obj);
 		case ACPI_TYPE_STRING:
-			build_str(L, obj);
-			break;
+			return build_str(L, obj);
 		case ACPI_TYPE_BUFFER:
-			build_buff(L, obj);
-			break;
+			return build_buff(L, obj);
 		case ACPI_TYPE_PACKAGE:
-			build_pkg(L, obj);
-			break;
+			return build_pkg(L, obj);
 		case ACPI_TYPE_LOCAL_REFERENCE:
-			build_ref(L, obj);
-			break;
+			return build_ref(L, obj);
 		case ACPI_TYPE_PROCESSOR:
-			build_proc(L, obj);
-			break;
+			return build_proc(L, obj);
 		case ACPI_TYPE_POWER:
-			build_pow(L, obj);
-			break;
+			return build_pow(L, obj);
 		default:
-			luaL_error(L, "Unable to build object: %d.", obj_type);
+			return AE_ERROR;
 	}
 }
 

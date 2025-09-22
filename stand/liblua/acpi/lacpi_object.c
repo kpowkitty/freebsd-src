@@ -18,7 +18,8 @@ lAcpiGetHandle(lua_State *L)
 	ACPI_STATUS status;
 
 	if (ACPI_FAILURE(status = AcpiGetHandle(NULL, pathname, &handle))) {
-		return luaL_error(L, "AcpiGetHandle failed with status 0x%x", status);
+		return lacpi_push_err(L, 1,
+		    "AcpiGetHandleFailed with status: ", status);
 	}
 	
 	lua_pushlightuserdata(L, handle);
@@ -43,6 +44,7 @@ static int
 lAcpiEvaluateObject(lua_State *L)
 {
 	ACPI_STATUS status;
+	char errmsg[128];
 	ACPI_OBJECT_LIST obj_list;
 	ACPI_HANDLE handle = NULL;
 	ACPI_OBJECT *objs = NULL;
@@ -70,7 +72,7 @@ lAcpiEvaluateObject(lua_State *L)
 	} else if (abs_path != NULL) {
 		pathname = strdup(abs_path);
 	} else {
-		return luaL_error(L, "Incorrect arguments");	
+		return lacpi_push_err(L, 1, "Incorrect arguments", 0);
 	}
 
 	/*
@@ -98,17 +100,20 @@ lAcpiEvaluateObject(lua_State *L)
 			lua_rawgeti(L, 4, i + 1);
 			lua_getfield(L, -1, "obj_type");
 			
-			if ((status = lua_int_to_uint32(L, -1, &obj_type)) 
-			    != AE_OK) {
-				lua_pushnil(L);
-				lua_pushstring(L, "ACPI_OBJECT_TYPE must be"
-						" UINT32");
+			if (ACPI_FAILURE(status = lacpi_int_to_uint32(L, -1,
+			    &obj_type))) {
 				free(objs);
-				return 2;
+				return lacpi_push_err(L, 1, 
+				    "ACPI_OBJECT_TYPE must be UINT32", 0);
 			}
 			lua_pop(L, 1);
 			
-			build_acpi_obj(L, &objs[i], obj_type);
+			if (ACPI_FAILURE(status = 
+			    build_acpi_obj(L, &objs[i], obj_type))) {
+				snprintf(errmsg, sizeof(errmsg), 
+				    "Failed to build objs[%d]", i);
+				return lacpi_push_err(L, 1, errmsg, status);
+			}
 			lua_pop(L, 1);
 		}
 
@@ -128,11 +133,8 @@ lAcpiEvaluateObject(lua_State *L)
 		free_acpi_objs(objs, obj_count);
 
 		char errbuf[64];
-		snprintf(errbuf, sizeof(errbuf),
-		    "AcpiEvaluateObject failed with status 0x%x", status);
-		lua_pushnil(L);
-		lua_pushstring(L, errbuf);
-		return 2;
+		return lacpi_push_err(L, 1, 
+		    "AcpiEvaluateObject failed with status", status);
 	}
 
 	if (return_buffer.Pointer != NULL) {

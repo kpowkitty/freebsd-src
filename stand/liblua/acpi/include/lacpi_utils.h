@@ -8,13 +8,20 @@
 /***** UTILITY *****/
 
 /* verifies lua passed over a handle on the stack */
-ACPI_HANDLE lua_check_handle(lua_State *L, int idx);
+ACPI_HANDLE lacpi_check_handle(lua_State *L, int idx);
 
 /* destructor dispatcher */
 typedef void (*acpi_destructor_t)(ACPI_OBJECT *);
 
 /* safety check -- lua stores integers as 64bit */
-UINT32 lua_int_to_uint32(lua_State *L, int index, const char *errmsg);
+ACPI_STATUS lacpi_int_to_uint32(lua_State *L, int index, UINT32 *num);
+
+/* build error code and push it onto stack */
+int lacpi_push_err(lua_State *L, const int push_nil, const char *errmsg,
+    const ACPI_STATUS status);
+
+/* extract error message relating to ACPI_STATUS */
+char *lacpi_extract_status(const ACPI_STATUS status);
 
 /***** FACTORY *****/
 
@@ -23,14 +30,14 @@ int lacpi_create_mt_gc(lua_State *L, const char *mt, lua_CFunction gc_func);
 
 /*** ACPI_OBJECT ***/
 /* build ACPI_OBJECTs */
-void build_int(lua_State *L, ACPI_OBJECT *obj);
-void build_str(lua_State *L, ACPI_OBJECT *obj);
-void build_buff(lua_State *L, ACPI_OBJECT *obj);
-void build_pkg(lua_State *L, ACPI_OBJECT *obj);
-void build_acpi_obj(lua_State *L, ACPI_OBJECT *obj, UINT32 obj_type);
-int build_ref(lua_State *L, ACPI_OBJECT *obj);
-int build_proc(lua_State *L, ACPI_OBJECT *obj);
-int build_pow(lua_State *L, ACPI_OBJECT *obj);
+ACPI_STATUS build_int(lua_State *L, ACPI_OBJECT *obj);
+ACPI_STATUS build_str(lua_State *L, ACPI_OBJECT *obj);
+ACPI_STATUS build_buff(lua_State *L, ACPI_OBJECT *obj);
+ACPI_STATUS build_pkg(lua_State *L, ACPI_OBJECT *obj);
+ACPI_STATUS build_acpi_obj(lua_State *L, ACPI_OBJECT *obj, UINT32 obj_type);
+ACPI_STATUS build_ref(lua_State *L, ACPI_OBJECT *obj);
+ACPI_STATUS build_proc(lua_State *L, ACPI_OBJECT *obj);
+ACPI_STATUS build_pow(lua_State *L, ACPI_OBJECT *obj);
 
 /* push ACPI_OBJECTs onto lua stack */
 void push_int(lua_State *L, ACPI_OBJECT *obj);

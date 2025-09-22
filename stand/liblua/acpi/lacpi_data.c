@@ -69,11 +69,17 @@ lAcpiAttachData(lua_State *L)
 {
 	ACPI_STATUS status;	
 	ACPI_HANDLE handle = (ACPI_HANDLE) lua_touserdata(L, 1);
-	UINT32 type = lua_int_to_uint32(L, 2, "Object type must be 32 bit");
+	UINT32 type;
 	ACPI_OBJECT *obj;
 
 	if (handle == NULL) {
 		return luaL_error(L, "lAcpiAttachData: Handle is NULL");
+	}
+
+	if (ACPI_FAILURE(status = lacpi_int_to_uint32(L, 2, &type))) {
+		lua_pushnil(L);
+		lua_pushstring(L, "ACPI_OBJECT_TYPE must be a UINT32");
+		return 2;
 	}
 
 	obj = malloc(sizeof(ACPI_OBJECT));

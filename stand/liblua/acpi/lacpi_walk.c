@@ -38,7 +38,7 @@ lAcpiWalkNamespace(lua_State *L)
 	ACPI_HANDLE handle = ACPI_ROOT_OBJECT;
 
 	if (!lua_isnoneornil(L, 1)) {
-		handle = lua_check_handle(L, 1);
+		handle = lacpi_check_handle(L, 1);
 		if (handle == NULL) {
 			return luaL_error(L, "Invalid ACPI handle");
 		}
