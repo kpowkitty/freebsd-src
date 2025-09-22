@@ -66,7 +66,7 @@ CFLAGS+=	-I${.CURDIR}/arch/${__arch}
 CFLAGS+=	-I${EFISRC}/include
 CFLAGS+=	-I${EFISRC}/include/${__arch}
 CFLAGS+=	-I${SYSDIR}/contrib/dev/acpica/include
-CFLAGS+=	-I${EFISRC}/libacpi/include
+CFLAGS+=	-I${EFISRC}/libacpi
 CFLAGS+=	-I${BOOTSRC}/i386/libi386
 CFLAGS+=	-DEFI
 
@@ -143,18 +143,21 @@ ${LOADER}.efi: ${PROG}
 LIBEFI=		${BOOTOBJ}/efi/libefi/libefi.a
 LIBEFI32=	${BOOTOBJ}/efi/libefi32/libefi.a
 LIBACPI=	${BOOTOBJ}/efi/libacpi/libacpi.a
+LIBACPI32=	${BOOTOBJ}/efi/libacpi32/libacpi.a
 
 .if ${__arch} == "i386"
-DPADD=		${LDR_INTERP32} ${LIBEFI32} ${LIBSA32} ${LDSCRIPT}
-LDADD=		${LDR_INTERP32} ${LIBEFI32} ${LIBSA32}
-.elif ${__arch} == "amd64"
-DPADD=		${LDR_INTERP} ${LIBEFI} ${LIBSAFDT} ${LIBEFI_FDT} \
-		${LIBSA} ${LIBACPI} ${LIBLUA} ${LDSCRIPT}
-LDADD=		${LDR_INTERP} ${LIBEFI} ${LIBSAFDT} ${LIBEFI_FDT} \
-		${LIBSA} ${LIBACPI} ${LIBLUA}
+DPADD=		${LDR_INTERP32} ${LIBEFI32} ${LIBSA32} ${LIBACPI32} ${LDSCRIPT}
+LDADD=		${LDR_INTERP32} ${LIBEFI32} ${LIBSA32} ${LIBACPI32}
 .else
-DPADD=		${LDR_INTERP} ${LIBEFI} ${LIBSAFDT} ${LIBEFI_FDT} ${LIBSA} ${LDSCRIPT}
-LDADD=		${LDR_INTERP} ${LIBEFI} ${LIBSAFDT} ${LIBEFI_FDT} ${LIBSA}
+DPADD=		${LDR_INTERP} ${LIBEFI} ${LIBSAFDT} ${LIBEFI_FDT} ${LIBSA} \
+		${LIBACPI} ${LDSCRIPT}
+LDADD=		${LDR_INTERP} ${LIBEFI} ${LIBSAFDT} ${LIBEFI_FDT} ${LIBSA} \
+		${LIBACPI}
+.endif
+
+.if ${__arch} == "amd64" && ${DO32:U0} == 0
+DPADD+=		${LIBLUA}
+LDADD+=		${LIBLUA}
 .endif
 
 .include <bsd.prog.mk>

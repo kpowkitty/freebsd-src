@@ -67,9 +67,12 @@
 #include "acconfig.h"
 #define ACPI_SYSTEM_XFACE
 
-#if defined(__amd64__)
+// If defined amd64 && loader_lua
+#if defined(__amd64__) && defined(MK_LOADER_LUA)
 #include <init_acpi.h>
 #include <lacpi.h>
+#else
+#include <acpi.h>
 #endif
 #include "actypes.h" // init_acpi creates redefinition
 #include "actbl.h"
@@ -1234,7 +1237,7 @@ main(int argc, CHAR16 *argv[])
 
 	devinit();
 
-#if defined(__amd64__)
+#if defined(__amd64__) && defined(MK_LOADER_LUA)
 	/* Initialize ACPI Subsystem and Tables. */
 	if ((ret = init_acpi()) != 0) {
 		printf("Failed to initialize ACPI\n.");

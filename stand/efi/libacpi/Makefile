@@ -3,9 +3,13 @@
 LIB=	acpi
 
 SRCS+= acpi_detect.c
-CFLAGS+= -I${.CURDIR}/include
 
-.if ${MACHINE} == "amd64"
+CFLAGS+=	-I${EFISRC}/include
+CFLAGS+=	-I${EFISRC}/include/${MACHINE}
+CFLAGS+=	-I${SYSDIR}/contrib/dev/acpica/include
+CFLAGS+=	-I${EFISRC}/libacpi
+
+.if ${MACHINE} == "amd64" && ${DO32:U0} == 0 
 CFLAGS+=	-DACPI_SINGLE_THREADED \
 		-DACPI_USE_NATIVE_RSDP_POINTER \
 		-DACPI_USE_NATIVE_MEMORY_MAPPING \
@@ -49,10 +53,8 @@ SRCS+=	libefi.c OsdMemory.c osunixxf.c utinit.c utglobal.c utresrc.c utlock.c \
 	psloop.c pstree.c pswalk.c psopinfo.c psscope.c psutils.c psargs.c \
 	psparse.c psxface.c psopcode.c init_acpi.c
 
-CFLAGS+=	-I${SYSDIR}/contrib/dev/acpica/include
-CFLAGS+=	-I${EFISRC}/include
-CFLAGS+=	-I${.CURDIR}/acpi/include
-CFLAGS+=	-I${EFISRC}/include/${MACHINE_ARCH}
+CFLAGS+=	-I${EFISRC}/libacpi/acpi/include
+
 .endif # amd64
 
 .include <bsd.lib.mk>
