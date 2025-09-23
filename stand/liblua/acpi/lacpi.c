@@ -46,9 +46,6 @@ lua_acpi_bindings(lua_State *L)
 		(*mod)->init(L);
 		lua_setglobal(L, (*mod)->mod_name);
 	}
-
-	luaopen_lacpi(L);
-	lua_setglobal(L, "lacpi");
 }
 
 /*
@@ -57,9 +54,7 @@ lua_acpi_bindings(lua_State *L)
 void
 lua_acpi_register_hook(void)
 {
-	if (acpi_is_initialized()) {
-		lua_acpi_register = lua_acpi_bindings;
-	}
+	lua_acpi_register = lua_acpi_bindings;
 }
 
 LUA_ACPI_COMPILE_SET(lacpi, luaopen_lacpi);

@@ -128,6 +128,12 @@ LDFLAGS+=	-Wl,--threads=1
 
 CLEANFILES+=	${LOADER}.efi
 
+.if ${__arch} == "amd64" && ${DO32:U0} == 0
+LACPI_COMPILE_SET= -j set_lua_acpi_modules
+.else
+LACPI_COMPILE_SET=
+.endif
+
 ${LOADER}.efi: ${PROG}
 	@if ${NM} ${.ALLSRC} | grep ' U '; then \
 		echo "Undefined symbols in ${.ALLSRC}"; \
@@ -138,6 +144,7 @@ ${LOADER}.efi: ${PROG}
 		-j .dynamic -j .dynsym -j .rel.dyn \
 		-j .rela.dyn -j .reloc -j .eh_frame -j set_Xcommand_set \
 		-j set_X${LOADER_INTERP}_compile_set \
+		${LACPI_COMPILE_SET} \
 		--output-target=${EFI_TARGET} ${.ALLSRC} ${.TARGET}
 
 LIBEFI=		${BOOTOBJ}/efi/libefi/libefi.a
@@ -153,11 +160,6 @@ DPADD=		${LDR_INTERP} ${LIBEFI} ${LIBSAFDT} ${LIBEFI_FDT} ${LIBSA} \
 		${LIBACPI} ${LDSCRIPT}
 LDADD=		${LDR_INTERP} ${LIBEFI} ${LIBSAFDT} ${LIBEFI_FDT} ${LIBSA} \
 		${LIBACPI}
-.endif
-
-.if ${__arch} == "amd64" && ${DO32:U0} == 0
-DPADD+=		${LIBLUA}
-LDADD+=		${LIBLUA}
 .endif
 
 .include <bsd.prog.mk>
