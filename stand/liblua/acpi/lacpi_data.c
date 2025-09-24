@@ -46,7 +46,7 @@ acpi_object_handler(ACPI_HANDLE handle, void *data)
 			dtor(obj);
 		} else {
 			free(obj);
-			obj == NULL;
+			obj = NULL;
 		}
 	}
 }

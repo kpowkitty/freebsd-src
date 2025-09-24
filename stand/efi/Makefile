@@ -17,10 +17,4 @@ SUBDIR.${MK_LOADER_LUA}+= loader_lua
 SUBDIR.${MK_LOADER_IA32}+= loader_ia32
 SUBDIR.yes+=	loader_simp
 
-.if !defined(MK_FORTH) && !defined(MK_LOADER_IA32) && defined(MK_LOADER_LUA)
-CFLAGS+= -DLACPI=1
-.else
-CFLAGS+= -DLACPI=0
-.endif
-
 .include <bsd.subdir.mk>

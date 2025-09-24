@@ -54,7 +54,9 @@ lua_acpi_bindings(lua_State *L)
 void
 lua_acpi_register_hook(void)
 {
-	lua_acpi_register = lua_acpi_bindings;
+	if (acpi_is_initialized()) {
+		lua_acpi_register = lua_acpi_bindings;
+	}
 }
 
 LUA_ACPI_COMPILE_SET(lacpi, luaopen_lacpi);

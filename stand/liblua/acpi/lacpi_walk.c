@@ -35,22 +35,26 @@ lua_dump_acpi_namespace(ACPI_HANDLE handle, UINT32 level, void *ctx,
 static int
 lAcpiWalkNamespace(lua_State *L)
 {
+	ACPI_STATUS status;
 	ACPI_HANDLE handle = ACPI_ROOT_OBJECT;
 
-	if (!lua_isnoneornil(L, 1)) {
+	/* If user does not want to provide a handle, we start at root. */
+	if (lua_gettop(L) < 1 || lua_isnil(L, 1)) {
+		handle = ACPI_ROOT_OBJECT;
+	} else {
 		handle = lacpi_check_handle(L, 1);
 		if (handle == NULL) {
-			return luaL_error(L, "Invalid ACPI handle");
+			return lacpi_push_err(L, 1, "Invalid ACPI handle", 0);
 		}
 	}
 
 	lua_newtable(L);
 	/* ctx->tbl == -2 because in push_node we add a table */
-	struct context ctx = { L, -2, 1};
+	struct context ctx = { L, -2, 1 };
 
-	if (ACPI_FAILURE(AcpiWalkNamespace(ACPI_TYPE_ANY, handle,
-	    ACPI_UINT32_MAX, lua_dump_acpi_namespace, NULL, &ctx, NULL))) {
-		return luaL_error(L, "Failed to walk ACPI namespace");
+	if (ACPI_FAILURE(status = AcpiWalkNamespace(ACPI_TYPE_ANY, handle,
+		ACPI_UINT32_MAX, lua_dump_acpi_namespace, NULL, &ctx, NULL))) {
+			return lacpi_push_err(L, 1, "Failed to walk ACPI namespace", status);
 	}
 
 	return 1;

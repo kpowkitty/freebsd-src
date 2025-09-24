@@ -1,9 +1,13 @@
 local function test_walk_namespace()
 	local nodes = lacpi.walk.namespace()  -- returns table of tables
+	
+	if nodes == nil then
+		return "FAILURE: Nodes were nil"
+	end
 
 	-- Print them in Lua
 	for _, node in ipairs(nodes) do
-	    print(node.level, node.path, node.HID, node.UID)
+	    print(node.level, node.path, node.HID or "", node.UID or "")
 	end
 
 	return "SUCCESS"

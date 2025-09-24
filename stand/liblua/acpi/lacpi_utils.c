@@ -538,15 +538,15 @@ push_node(struct context *curr_ctx, const char *path, UINT32 level,
 
     	ACPI_DEVICE_INFO *info = NULL;
     	if (ACPI_SUCCESS(AcpiGetObjectInfo(handle, &info))) {
-    	    if (info->Valid & ACPI_VALID_HID) {
-    	        push_hid(curr_ctx, info->HardwareId.String);
-    	    }
+    		if (info->Valid & ACPI_VALID_HID) {
+    			push_hid(curr_ctx, info->HardwareId.String);
+		}
     	    
-    	    if (info->Valid & ACPI_VALID_UID) {
-    	        push_uid(curr_ctx, info->UniqueId.String);
-    	    }
+		if (info->Valid & ACPI_VALID_UID) {
+			push_uid(curr_ctx, info->UniqueId.String);
+    	    	}
     	    
-    	    ACPI_FREE(info);
+    	    	ACPI_FREE(info);
     	}
 
     	lua_rawseti(curr_ctx->L, curr_ctx->tbl, curr_ctx->idx);
