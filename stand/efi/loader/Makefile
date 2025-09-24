@@ -170,7 +170,4 @@ LDADD=		${LDR_INTERP} ${LIBEFI} ${LIBSAFDT} ${LIBEFI_FDT} ${LIBSA} \
 		${LIBACPI}
 .endif
 
-show:
-	@echo "MAKECMDGOALS = ${MAKECMDGOALS}"
-
 .include <bsd.prog.mk>
