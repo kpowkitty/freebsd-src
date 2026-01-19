@@ -33,8 +33,10 @@
 #include "lutils.h"
 #include "bootstrap.h"
 
+#if defined(__amd64__)
 #include <lacpi.h>
 #include <contrib/dev/acpica/include/acpi.h>
+#endif
 
 lua_acpi_registration_fn lua_acpi_register = NULL;
 
@@ -448,6 +450,7 @@ lua_add_features(lua_State *L)
 	lua_setfield(L, -2, "features");
 }
 
+#if defined(__amd64__)
 void
 register_lacpi_modules(lua_State *L)
 {
@@ -459,6 +462,7 @@ register_lacpi_modules(lua_State *L)
 		lua_acpi_register(L);
 	}
 }
+#endif
 
 int
 luaopen_loader(lua_State *L)
