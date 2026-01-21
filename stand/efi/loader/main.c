@@ -1236,7 +1236,7 @@ main(int argc, CHAR16 *argv[])
 
 	devinit();
 
-#if defined(__amd64__) && LACPI
+#ifdef LOADER_ACPI_SUPPORT
 	/* Initialize ACPI Subsystem and Tables. */
 	if ((ret = init_acpi()) != 0) {
 		printf("Failed to initialize ACPI\n.");

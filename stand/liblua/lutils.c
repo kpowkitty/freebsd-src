@@ -33,7 +33,7 @@
 #include "lutils.h"
 #include "bootstrap.h"
 
-#if defined(__amd64__)
+#ifdef LOADER_ACPI_SUPPORT
 #include <lacpi.h>
 #include <contrib/dev/acpica/include/acpi.h>
 #endif
@@ -450,7 +450,7 @@ lua_add_features(lua_State *L)
 	lua_setfield(L, -2, "features");
 }
 
-#if defined(__amd64__)
+#ifdef LOADER_ACPI_SUPPORT
 void
 register_lacpi_modules(lua_State *L)
 {
@@ -491,7 +491,7 @@ luaopen_loader(lua_State *L)
 	/* Set global printc to loader.printc */
 	lua_register(L, "printc", lua_printc);
 
-#if defined(__amd64__)
+#ifdef LOADER_ACPI_SUPPORT
 	// ACPICA Bindings
 	register_lacpi_modules(L);
 #endif
