@@ -4,6 +4,12 @@ LOADER_UFS_SUPPORT?=	yes
 LOADER_CD9660_SUPPORT?=	no
 LOADER_EXT2FS_SUPPORT?=	no
 
+.if ${MACHINE} == "amd64" && ${D032:U0} == 0
+LOADER_ACPI_SUPPORT?=	yes
+.else
+LOADER_ACPI_SUPPORT?= 	no
+.endif
+
 .include <bsd.init.mk>
 
 .if ${MACHINE} == "amd64" && ${DO32:U0} == 1
@@ -139,13 +145,6 @@ CLEANFILES+=	${LOADER}.efi
 LACPI_COMPILE_SET= -j set_lua_acpi_modules
 .else
 LACPI_COMPILE_SET=
-.endif
-
-# To protect ACPI init and lua bindings
-.if ${LOADER} == "loader_lua"
-CFLAGS+= -DLACPI=1
-.else
-CFLAGS+= -DLACPI=0
 .endif
 
 ${LOADER}.efi: ${PROG}
